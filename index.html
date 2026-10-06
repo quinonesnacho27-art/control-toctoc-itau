@@ -1,0 +1,2129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de pagos TOCTOC · Itaú</title>
+<style>
+/* =========================================================
+   ESTILOS GENERALES
+   ========================================================= */
+:root{
+  --navy:#0B2A5B; --navy-2:#16407f; --navy-soft:#e9eff9;
+  --orange:#EC7000; --orange-2:#ff8a1f; --orange-soft:#fff2e5;
+  --bg:#f3f5f9; --card:#ffffff; --text:#1d2433; --muted:#667085; --line:#e3e7ee;
+  --green:#12805c; --green-soft:#e2f5ec;
+  --yellow:#9a6400; --yellow-soft:#fff5d1; --yellow-line:#f2c037;
+  --red:#c62828; --red-soft:#fdeaea;
+  --blue:#1565c0; --blue-soft:#e6f0fc;
+  --gray:#6b7280; --gray-soft:#eef0f3;
+  --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}
+.hidden{display:none!important}
+h2{font-size:20px;margin:0 0 4px;color:var(--navy)}
+h3{font-size:16px;margin:0;color:var(--navy)}
+p{margin:0 0 8px}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.right{text-align:right}
+.nowrap{white-space:nowrap}
+
+/* ---------- Encabezado fijo ---------- */
+.app-header{position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(11,42,91,.12)}
+.topbar{background:linear-gradient(90deg,var(--navy),var(--navy-2));color:#fff;display:flex;align-items:center;gap:18px;padding:10px 24px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:38px;height:38px;border-radius:10px;background:var(--orange);display:grid;place-items:center;font-weight:800;font-size:14px;letter-spacing:.5px;color:#fff}
+.brand h1{font-size:16px;margin:0;font-weight:700}
+.brand small{opacity:.8;font-size:12px}
+.period{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);padding:5px 8px;border-radius:10px}
+.period label{font-size:12px;opacity:.85;margin-right:4px}
+.period select{background:#fff;color:var(--navy);border:0;border-radius:7px;padding:5px 6px;font-weight:600;font-size:13px;cursor:pointer}
+.pbtn{background:rgba(255,255,255,.18);border:0;color:#fff;border-radius:7px;padding:5px 9px;cursor:pointer;font-size:13px;font-weight:600}
+.pbtn:hover{background:rgba(255,255,255,.3)}
+.save-ind{font-size:12px;display:flex;flex-direction:column;align-items:flex-end;min-width:210px}
+.save-ind .ok{color:#9ff0c9;font-weight:600}
+.save-ind .bad{color:#ffd0a1;font-weight:600}
+.tabs{background:#fff;border-bottom:1px solid var(--line);display:flex;gap:2px;padding:0 24px;overflow-x:auto}
+.tab{border:0;background:none;padding:12px 14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;font-size:14px;font-family:inherit}
+.tab:hover{color:var(--navy)}
+.tab.active{color:var(--navy);border-bottom-color:var(--orange)}
+.tab .count{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:999px;background:var(--red);color:#fff;font-size:11px}
+.tab .count.zero{background:var(--gray-soft);color:var(--gray)}
+.top-alert{background:var(--red);color:#fff;padding:9px 24px;display:flex;align-items:center;gap:12px;font-weight:600;flex-wrap:wrap}
+.top-alert button{margin-left:auto}
+.storage-warn{background:#7a3d00;color:#fff;padding:8px 24px;font-size:13px}
+
+main{padding:20px 24px 60px;max-width:1680px;margin:0 auto}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* ---------- Tarjetas ---------- */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--line);padding:16px}
+.card + .card{margin-top:16px}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.grid-2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;margin-top:16px}
+@media (max-width:1100px){.grid-2{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s,box-shadow .12s;position:relative;overflow:hidden}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(16,24,40,.1)}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--navy)}
+.kpi .k-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;display:flex;gap:6px;align-items:center}
+.kpi .k-value{font-size:28px;font-weight:700;color:var(--navy);margin-top:4px}
+.kpi .k-sub{font-size:12px;color:var(--muted)}
+.kpi.main{background:linear-gradient(135deg,var(--navy),var(--navy-2));color:#fff;grid-column:span 2}
+.kpi.main::before{background:var(--orange)}
+.kpi.main .k-label,.kpi.main .k-sub{color:rgba(255,255,255,.8)}
+.kpi.main .k-value{color:#fff;font-size:34px}
+@media (max-width:520px){.kpi.main{grid-column:span 1}}
+.kpi.green::before{background:var(--green)} .kpi.yellow::before{background:var(--yellow-line)}
+.kpi.red::before{background:var(--red)} .kpi.blue::before{background:var(--blue)} .kpi.orange::before{background:var(--orange)}
+.kpi.red .k-value{color:var(--red)} .kpi.blue .k-value{color:var(--blue)}
+
+/* ---------- Gráfico ---------- */
+.chart-wrap{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+.donut{width:190px;height:190px;border-radius:50%;position:relative;flex-shrink:0}
+.donut::after{content:"";position:absolute;inset:34px;background:#fff;border-radius:50%}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
+.donut-center b{font-size:28px;color:var(--navy)}
+.donut-center span{font-size:12px;color:var(--muted)}
+.bars{flex:1;min-width:240px}
+.bar-row{display:grid;grid-template-columns:130px 1fr 44px;gap:10px;align-items:center;margin:8px 0;font-size:13px}
+.bar-track{background:var(--gray-soft);border-radius:999px;height:12px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;transition:width .4s}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+/* ---------- Badges y estados ---------- */
+.badge.wrap{white-space:normal}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-green{background:var(--green-soft);color:var(--green)}
+.b-yellow{background:var(--yellow-soft);color:var(--yellow)}
+.b-red{background:var(--red-soft);color:var(--red)}
+.b-blue{background:var(--blue-soft);color:var(--blue)}
+.b-gray{background:var(--gray-soft);color:var(--gray)}
+.b-orange{background:var(--orange-soft);color:#b45300}
+.b-navy{background:var(--navy-soft);color:var(--navy)}
+
+/* ---------- Botones ---------- */
+.btn{border:1px solid transparent;border-radius:9px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s;white-space:nowrap}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--orange);color:#fff}
+.btn-primary:hover:not(:disabled){background:#d46400}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-navy:hover:not(:disabled){background:var(--navy-2)}
+.btn-ghost{background:#fff;color:var(--navy);border-color:var(--line)}
+.btn-ghost:hover:not(:disabled){border-color:var(--navy);background:var(--navy-soft)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover:not(:disabled){background:#a51f1f}
+.btn-success{background:var(--green);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.icon-btn{border:1px solid var(--line);background:#fff;border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px;display:inline-grid;place-items:center;color:var(--navy);padding:0}
+.icon-btn:hover{background:var(--navy-soft);border-color:var(--navy)}
+.icon-btn.danger{color:var(--red)} .icon-btn.danger:hover{background:var(--red-soft);border-color:var(--red)}
+.icon-btn.warn{color:#b45300} .icon-btn.warn:hover{background:var(--orange-soft);border-color:var(--orange)}
+.actions{display:flex;gap:4px;flex-wrap:nowrap}
+
+/* ---------- Formularios ---------- */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label{font-size:12px;font-weight:600;color:var(--navy)}
+input[type=text],input[type=number],input:not([type]),select,textarea{font-family:inherit;font-size:13px;border:1px solid #cfd6e2;border-radius:8px;padding:7px 9px;background:#fff;color:var(--text);width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(236,112,0,.35);border-color:var(--orange)}
+input.invalid,textarea.invalid{border-color:var(--red);background:#fff8f8}
+input:disabled,select:disabled,textarea:disabled{background:#f3f4f6;color:#6b7280}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.form-grid .full{grid-column:1/-1}
+@media (max-width:640px){.form-grid{grid-template-columns:1fr}}
+.err{color:var(--red);font-size:12px;min-height:0}
+.hint{font-size:12px;color:var(--muted)}
+.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;align-items:end}
+.filters .field{margin:0}
+.check{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none}
+.check input{width:16px;height:16px;accent-color:var(--orange)}
+.switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#c7ced9;border-radius:999px;cursor:pointer;transition:.2s}
+.slider::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked + .slider{background:var(--green)}
+.switch input:checked + .slider::before{transform:translateX(18px)}
+.switch input:disabled + .slider{opacity:.5;cursor:not-allowed}
+input.mini{padding:4px 6px;font-size:12px;min-width:70px}
+
+/* ---------- Tablas ---------- */
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
+.table-wrap.tall{max-height:66vh}
+table.data{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+table.data th{position:sticky;top:0;z-index:2;background:#f6f8fc;color:var(--navy);font-weight:700;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px}
+table.data th.sortable{cursor:pointer;user-select:none}
+table.data th.sortable:hover{background:var(--navy-soft)}
+table.data th .arrow{color:var(--orange);margin-left:3px}
+table.data td{padding:8px 10px;border-bottom:1px solid #eef1f5;vertical-align:middle}
+table.data tr:hover td{background:#fafbfe}
+table.data tfoot td{font-weight:700;background:#f6f8fc}
+tr.r-green td:first-child{box-shadow:inset 4px 0 0 var(--green)}
+tr.r-yellow td:first-child{box-shadow:inset 4px 0 0 var(--yellow-line)}
+tr.r-red td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+tr.r-red td{background:#fffafa}
+tr.r-blue td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
+tr.r-gray td{color:#7b8190}
+tr.r-gray td:first-child{box-shadow:inset 4px 0 0 #b8bec9}
+td.name-cell{font-weight:600;color:var(--navy);min-width:180px}
+td.notes-cell{max-width:240px;font-size:12px;color:var(--muted)}
+.counter{font-size:13px;color:var(--muted);margin:10px 2px}
+.counter b{color:var(--navy)}
+.diff-pos{color:var(--red);font-weight:700}
+.diff-neg{color:var(--blue);font-weight:700}
+.diff-zero{color:var(--green);font-weight:700}
+
+/* ---------- Alertas ---------- */
+.notice{border-radius:10px;padding:10px 14px;margin:10px 0;display:flex;gap:10px;align-items:flex-start;font-size:13px}
+.notice .ic{font-size:16px;line-height:1.2}
+.n-info{background:var(--navy-soft);color:var(--navy);border:1px solid #cdd9ee}
+.n-warn{background:var(--yellow-soft);color:#6d4800;border:1px solid #f3dc8a}
+.n-error{background:var(--red-soft);color:#8e1c1c;border:1px solid #f5c2c2}
+.n-success{background:var(--green-soft);color:#0d5f44;border:1px solid #b9e6d2}
+.alert-card{border:1px solid var(--line);border-left:5px solid var(--gray);border-radius:10px;padding:14px;background:#fff;margin-bottom:12px;box-shadow:var(--shadow)}
+.alert-card.critical{border-left-color:var(--red)}
+.alert-card.info{border-left-color:var(--yellow-line)}
+.alert-card.reviewed{opacity:.7;border-left-color:var(--green)}
+.alert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px;margin:10px 0}
+.alert-grid > div > span:first-child{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600}
+.alert-foot{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.alert-foot textarea{flex:1;min-width:220px;min-height:38px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--navy);font-family:inherit}
+.chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.empty{text-align:center;padding:42px 20px;color:var(--muted)}
+.empty .big{font-size:38px;margin-bottom:6px}
+.check-list{list-style:none;padding:0;margin:0}
+.check-list li{padding:9px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px;display:flex;gap:10px}
+.check-list li.ok{background:var(--green-soft);border-color:#b9e6d2}
+.check-list li.fail{background:var(--red-soft);border-color:#f5c2c2}
+.check-list .ic{font-weight:800}
+.summary-list{display:grid;grid-template-columns:180px 1fr;gap:6px 12px;font-size:13px}
+.summary-list dt{color:var(--muted);font-weight:600}
+.summary-list dd{margin:0}
+.totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:14px}
+.total-box{background:#f6f8fc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.total-box > span:first-child{display:block;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.total-box b{font-size:20px;color:var(--navy)}
+.total-box.final{background:var(--navy);border-color:var(--navy)}
+.total-box.final > span:first-child{color:rgba(255,255,255,.8)} .total-box.final b{color:#fff}
+details{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:10px;background:#fff}
+details summary{cursor:pointer;font-weight:600;color:var(--navy)}
+.pill-status{font-size:13px;padding:5px 12px}
+.share-note{background:var(--orange-soft);border:1px solid #f7cfa6;color:#6b3600;border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px}
+.info{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--navy-soft);color:var(--navy);font-size:11px;font-weight:700;cursor:help;font-style:normal}
+.kpi.main .info{background:rgba(255,255,255,.2);color:#fff}
+
+/* ---------- Modales, toasts, tooltip ---------- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(11,42,91,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:100;overflow:auto}
+.modal{background:#fff;border-radius:14px;max-width:640px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:pop .15s ease-out}
+.modal.lg{max-width:1200px}
+.modal.md{max-width:860px}
+@keyframes pop{from{transform:scale(.97);opacity:0}to{transform:none;opacity:1}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal-body{padding:16px 18px;max-height:calc(100vh - 220px);overflow:auto}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.toasts{position:fixed;right:20px;bottom:20px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:380px}
+.toast{background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:11px 14px;border-left:5px solid var(--navy);font-size:13px;display:flex;gap:8px;animation:pop .15s}
+.toast.success{border-left-color:var(--green)} .toast.error{border-left-color:var(--red)} .toast.warn{border-left-color:var(--orange)}
+#tooltip{position:fixed;z-index:400;background:#14213d;color:#fff;font-size:12px;padding:7px 10px;border-radius:7px;max-width:300px;pointer-events:none;display:none;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.preview-box{background:#f6f8fc;border:1px dashed #c4cfe0;border-radius:10px;padding:12px;margin-top:4px}
+.preview-box .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+</style>
+</head>
+<body>
+<div id="storageWarn" class="storage-warn hidden">⚠ <b>localStorage no está disponible</b> en este navegador o modo de navegación. Los cambios solo se mantendrán mientras la pestaña esté abierta. Descarga un respaldo JSON antes de cerrar.</div>
+<header class="app-header">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">TT</div>
+      <div>
+        <h1>Control de pagos <span id="hdrCounterpart">TOCTOC</span></h1>
+        <small>Proyectos inmobiliarios publicados en landing · Pagador: <span id="hdrPayer">Itaú</span></small>
+      </div>
+    </div>
+    <div class="period" data-tip="Periodo de control. Todos los cálculos, alertas y la liquidación se actualizan según el mes seleccionado.">
+      <label>Periodo</label>
+      <button class="pbtn" onclick="shiftPeriod(-1)" aria-label="Mes anterior">‹</button>
+      <select id="selMonth" onchange="onPeriodSelect()" aria-label="Mes"></select>
+      <select id="selYear" onchange="onPeriodSelect()" aria-label="Año"></select>
+      <button class="pbtn" onclick="shiftPeriod(1)" aria-label="Mes siguiente">›</button>
+      <button class="pbtn" onclick="setPeriod(currentYM())" data-tip="Ir al mes actual">Hoy</button>
+    </div>
+    <div id="saveInd" class="save-ind"></div>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+  <div id="topAlert"></div>
+</header>
+<main id="main"></main>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<div id="tooltip" role="tooltip"></div>
+<div id="modalRoot"></div>
+<script>
+/* =========================================================================
+   SINCRONIZACIÓN COMPARTIDA (JSONBin.io) — módulo común del equipo hipotecario
+   - Cada persona ingresa una vez Master Key + BIN ID (se guardan en su dispositivo).
+   - Los datos viven en un BIN de JSONBin; todos ven lo mismo.
+   - Cada cambio se envía solo (con unos segundos de espera) y se mezcla con lo que
+     otras personas hayan guardado antes, para no pisar el trabajo de nadie.
+   - Sin conexión: los cambios quedan en el equipo y se envían al reconectar.
+   - Los datos se comprimen (gzip + base64) para respetar el límite de 100 KB por BIN.
+   ========================================================================= */
+const CloudSync = (function(){
+  'use strict';
+  const API = 'https://api.jsonbin.io/v3';
+  const LS_KEY = 'itau_hip_key', LS_NAME = 'itau_hip_name';
+  const DEBOUNCE_MS = 2500;   // agrupa varios cambios seguidos en un solo envío (cuida el límite de solicitudes)
+  let C = null, P = '', ov = null, pn = null, started = false, retryTimer = null, saveTimer = null, retryMs = 20000;
+  const S = {rev:0, base:null, busy:false, again:false, dirty:false, state:'init', err:null, errCode:'',
+             savedAt:'', savedBy:'', lastSync:0};
+  const memStore = {};
+
+  /* ---------- almacenamiento local (con respaldo en memoria) ---------- */
+  const store = {
+    get(k){ try{ const v = localStorage.getItem(k); return v === null ? (memStore[k] ?? null) : v; }catch(e){ return memStore[k] ?? null; } },
+    set(k, v){ memStore[k] = v; try{ localStorage.setItem(k, v); }catch(e){} },
+    del(k){ delete memStore[k]; try{ localStorage.removeItem(k); }catch(e){} }
+  };
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const clone = o => o === undefined ? undefined : JSON.parse(JSON.stringify(o));
+  const isObj = x => x !== null && typeof x === 'object' && !Array.isArray(x);
+
+  class SyncError extends Error { constructor(code, msg){ super(msg); this.code = code; } }
+
+  /* ---------- comparación y mezcla de datos (3 vías) ---------- */
+  function deepEqual(a, b){
+    if(a === b) return true;
+    if(a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+    if(Array.isArray(a) !== Array.isArray(b)) return false;
+    if(Array.isArray(a)){
+      if(a.length !== b.length) return false;
+      for(let i = 0; i < a.length; i++) if(!deepEqual(a[i], b[i])) return false;
+      return true;
+    }
+    const ka = Object.keys(a).filter(k => a[k] !== undefined), kb = Object.keys(b).filter(k => b[k] !== undefined);
+    if(ka.length !== kb.length) return false;
+    for(const k of ka) if(!deepEqual(a[k], b[k])) return false;
+    return true;
+  }
+  const hasIds = arr => arr.every(x => isObj(x) && x.id !== undefined && x.id !== null);
+  /** b = última versión sincronizada, m = la mía, t = la del servidor. Devuelve la mezcla. */
+  function merge(b, m, t, path){
+    path = path || '';
+    if(deepEqual(m, t)) return clone(m);
+    if(deepEqual(m, b)) return clone(t);
+    if(deepEqual(t, b)) return clone(m);
+    if(isObj(m) && isObj(t)){
+      const bb = isObj(b) ? b : {}, out = {};
+      new Set(Object.keys(m).concat(Object.keys(t), Object.keys(bb))).forEach(k => {
+        const r = mergeKey(bb[k], m[k], t[k], path + '/' + k);
+        if(r !== undefined) out[k] = r;
+      });
+      return out;
+    }
+    if(Array.isArray(m) && Array.isArray(t)) return mergeArr(Array.isArray(b) ? b : [], m, t, path);
+    return clone(m);            // conflicto en un valor simple: prevalece lo mío
+  }
+  function mergeKey(bv, mv, tv, path){
+    if(mv === undefined && tv === undefined) return undefined;
+    if(mv === undefined){ if(bv === undefined) return clone(tv); return deepEqual(tv, bv) ? undefined : clone(tv); }
+    if(tv === undefined){ if(bv === undefined) return clone(mv); return deepEqual(mv, bv) ? undefined : clone(mv); }
+    return merge(bv, mv, tv, path);
+  }
+  function mergeArr(b, m, t, path){
+    if(hasIds(b) && hasIds(m) && hasIds(t)){
+      const idx = a => { const o = new Map(); a.forEach(x => o.set(x.id, x)); return o; };
+      const B = idx(b), M = idx(m), out = [], seen = new Set();
+      t.forEach(ti => {
+        seen.add(ti.id);
+        const bi = B.get(ti.id), mi = M.get(ti.id);
+        if(mi === undefined){ if(bi === undefined || !deepEqual(ti, bi)) out.push(clone(ti)); }   // si yo lo borré y nadie lo tocó, se va
+        else out.push(merge(bi, mi, ti, path + '[]'));
+      });
+      m.forEach(mi => {
+        if(seen.has(mi.id)) return;
+        const bi = B.get(mi.id);
+        if(bi === undefined || !deepEqual(mi, bi)) out.push(clone(mi));   // nuevo mío, o lo modifiqué y otro lo borró
+      });
+      return out;
+    }
+    const k = x => JSON.stringify(x);
+    const bk = new Set(b.map(k)), mk = new Set(m.map(k)), tk = new Set(t.map(k));
+    const kept = t.filter(x => !(bk.has(k(x)) && !mk.has(k(x))));
+    const added = m.filter(x => !bk.has(k(x)) && !tk.has(k(x)));
+    const pre = (C && C.prepend) || [];
+    return (pre.indexOf(path) >= 0 ? added.concat(kept) : kept.concat(added)).map(clone);
+  }
+
+  /* ---------- compresión ---------- */
+  const canGzip = () => typeof CompressionStream !== 'undefined' && typeof DecompressionStream !== 'undefined' && typeof Response !== 'undefined';
+  function toB64(u8){ let s = ''; for(let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+  function fromB64(b64){ const s = atob(b64), u8 = new Uint8Array(s.length); for(let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i); return u8; }
+  async function gzip(str){
+    const cs = new CompressionStream('gzip'), w = cs.writable.getWriter();
+    w.write(new TextEncoder().encode(str)); w.close();
+    return toB64(new Uint8Array(await new Response(cs.readable).arrayBuffer()));
+  }
+  async function gunzip(b64){
+    const ds = new DecompressionStream('gzip'), w = ds.writable.getWriter();
+    w.write(fromB64(b64)); w.close();
+    return await new Response(ds.readable).text();
+  }
+  async function pack(data, rev){
+    const env = {app:C.app, v:1, rev:rev, savedAt:new Date().toISOString(), savedBy:user() || 'sin nombre'};
+    const json = JSON.stringify(data);
+    if(canGzip()){ env.enc = 'gzip-b64'; env.data = await gzip(json); }
+    else{ if(json.length > 90000) throw new SyncError('size', 'Los datos superan el límite del plan gratuito y este navegador no puede comprimirlos. Usa una versión reciente de Chrome, Edge o Safari.'); env.enc = 'json'; env.data = data; }
+    if(JSON.stringify(env).length > 98000) throw new SyncError('size', 'Los datos superan el límite de 100 KB del plan gratuito de JSONBin. Exporta un respaldo y depura registros antiguos.');
+    return env;
+  }
+  async function unpack(env){
+    if(env.enc === 'gzip-b64'){
+      if(!canGzip()) throw new SyncError('browser', 'Este navegador no puede leer los datos comprimidos. Usa una versión reciente de Chrome, Edge, Firefox o Safari.');
+      return JSON.parse(await gunzip(env.data));
+    }
+    return env.data;
+  }
+
+  /* ---------- JSONBin ---------- */
+  const getKey = () => (store.get(LS_KEY) || '').trim();
+  const getBin = () => (store.get(P + 'bin') || '').trim();
+  const user = () => (store.get(LS_NAME) || '').trim();
+  async function http(method, path, key, body, extraHeaders){
+    const headers = Object.assign({'X-Master-Key': key}, extraHeaders || {});
+    if(body !== undefined) headers['Content-Type'] = 'application/json';
+    let r;
+    try{ r = await fetch(API + path, {method, headers, body: body !== undefined ? JSON.stringify(body) : undefined, cache:'no-store'}); }
+    catch(e){ throw new SyncError('network', 'Sin conexión con el servidor.'); }
+    if(!r.ok){
+      let msg = ''; try{ msg = (await r.json()).message || ''; }catch(e){}
+      if(r.status === 401 || r.status === 403) throw new SyncError('auth', 'La Master Key no es válida o no tiene permiso.');
+      if(r.status === 404) throw new SyncError('bin', 'No se encontró ese BIN ID. Revisa que esté copiado completo.');
+      if(r.status === 429 || /limit/i.test(msg)) throw new SyncError('limit', 'JSONBin alcanzó su límite de solicitudes. Intenta más tarde.');
+      throw new SyncError('http', 'Error ' + r.status + (msg ? ': ' + msg : ''));
+    }
+    return await r.json();
+  }
+  async function jbGet(key, bin){
+    const env = await http('GET', '/b/' + encodeURIComponent(bin) + '/latest', key, undefined, {'X-Bin-Meta':'false'});
+    if(!isObj(env) || env.app !== C.app || !('data' in env))
+      throw new SyncError('mismatch', 'Ese BIN ID no corresponde a esta aplicación (' + C.title + '). Verifica que usas el BIN ID correcto.');
+    return env;
+  }
+  const jbPut = (key, bin, env) => http('PUT', '/b/' + encodeURIComponent(bin), key, env);
+  async function jbCreate(key, env){
+    const j = await http('POST', '/b', key, env, {'X-Bin-Name': C.binName, 'X-Bin-Private':'true'});
+    if(!j || !j.metadata || !j.metadata.id) throw new SyncError('http', 'JSONBin no devolvió el ID del nuevo BIN.');
+    return j.metadata.id;
+  }
+
+  /* ---------- metadatos locales (última versión sincronizada) ---------- */
+  function loadMeta(){
+    try{
+      const m = JSON.parse(store.get(P + 'sync') || 'null');
+      if(m && m.base && m.bin === getBin()){ S.base = m.base; S.rev = m.rev || 0; S.savedAt = m.savedAt || ''; S.savedBy = m.savedBy || ''; S.lastSync = m.lastSync || 0; S.dirty = !!m.dirty; }
+    }catch(e){}
+  }
+  function saveMeta(){
+    store.set(P + 'sync', JSON.stringify({bin:getBin(), base:S.base, rev:S.rev, savedAt:S.savedAt, savedBy:S.savedBy, lastSync:S.lastSync, dirty:S.dirty}));
+  }
+
+  /* ---------- estado visible ---------- */
+  function fmtDT(iso){
+    if(!iso) return '';
+    const d = new Date(iso); if(isNaN(d)) return '';
+    const p = n => String(n).padStart(2, '0');
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function info(){
+    const base = {state:S.state, dirty:S.dirty, savedAt:S.savedAt, savedBy:S.savedBy, savedAtText:fmtDT(S.savedAt), bin:getBin(), user:user(), error:S.err};
+    const last = S.savedAt ? 'Última modificación: ' + fmtDT(S.savedAt) + (S.savedBy ? ' por ' + S.savedBy : '') : '';
+    const txt = {
+      init:'Iniciando…', loading:'Conectando con el equipo…', saving:'Guardando cambios…',
+      ok:'Sincronizado con el equipo', offline:'Sin conexión: tus cambios quedan en este equipo y se enviarán solos',
+      error:'No se pudo sincronizar: ' + (S.err || '')
+    }[S.state] || '';
+    const short = {init:'…', loading:'Conectando…', saving:'Guardando…', ok:'Sincronizado', offline:'Sin conexión', error:'Error de sincronización'}[S.state] || '';
+    return Object.assign(base, {text:txt, short:short, last:last});
+  }
+  function setStatus(state, err, code){
+    S.state = state; S.err = err || null; S.errCode = code || '';
+    try{ C.onStatus && C.onStatus(info()); }catch(e){}
+    if(pn && !pn.classList.contains('cs-hidden')) renderPanel();
+  }
+
+  /* ---------- ciclo de sincronización ---------- */
+  function schedule(ms){ clearTimeout(saveTimer); saveTimer = setTimeout(() => sync('auto'), ms == null ? DEBOUNCE_MS : ms); }
+  /** Avisa que hubo un cambio local (lo llama la aplicación al guardar). */
+  function changed(){
+    if(!started || !S.base) return;
+    S.dirty = true; saveMeta(); setStatus('saving'); schedule();
+  }
+  async function sync(reason){
+    if(!started) return;
+    if(S.busy){ S.again = true; return; }
+    const key = getKey(), bin = getBin();
+    if(!key || !bin) return;
+    S.busy = true; clearTimeout(retryTimer);
+    if(S.state !== 'saving') setStatus(S.base ? (S.dirty ? 'saving' : 'loading') : 'loading');
+    try{
+      const env = await jbGet(key, bin);
+      const theirs = await unpack(env);
+      const first = !S.base, mine = C.getData();
+      const merged = first ? theirs : merge(S.base, mine, theirs, '');
+      let rev = env.rev || 0, savedAt = env.savedAt || '', savedBy = env.savedBy || '';
+      if(!deepEqual(merged, theirs)){
+        rev = rev + 1;
+        const out = await pack(merged, rev);
+        await jbPut(key, bin, out);
+        savedAt = out.savedAt; savedBy = out.savedBy;
+      }
+      S.base = clone(merged); S.rev = rev; S.savedAt = savedAt; S.savedBy = savedBy; S.lastSync = Date.now();
+      const cur = C.getData();
+      if(!deepEqual(cur, mine)){            // el usuario siguió editando mientras se enviaba
+        C.applyData(merge(mine, cur, merged, ''));
+        S.dirty = true; S.again = true;
+      }else{
+        if(!deepEqual(merged, mine)) C.applyData(merged);
+        S.dirty = false;
+      }
+      saveMeta(); retryMs = 20000;
+      setStatus('ok');
+    }catch(e){
+      const code = e.code || 'unknown';
+      if(code === 'network'){
+        S.dirty = S.base ? !deepEqual(C.getData(), S.base) : false; saveMeta();
+        setStatus('offline', e.message, code);
+        retryTimer = setTimeout(() => sync('retry'), retryMs); retryMs = Math.min(retryMs * 2, 300000);
+      }else if(code === 'limit'){
+        setStatus('error', e.message, code);
+        retryTimer = setTimeout(() => sync('retry'), 300000);
+      }else{
+        setStatus('error', e.message || String(e), code);
+      }
+    }finally{
+      S.busy = false;
+      if(S.again){ S.again = false; schedule(300); }
+    }
+  }
+  const modalOpen = () => C.isBusyUI ? !!C.isBusyUI() : false;
+  /** Actualización manual desde el botón. */
+  async function refresh(){ clearTimeout(saveTimer); await sync('manual'); }
+
+  /* ---------- interfaz: pantalla de configuración, bloqueo y panel ---------- */
+  const CSS = `
+  .cs-ov{position:fixed;inset:0;z-index:9000;background:rgba(15,27,51,.78);display:flex;align-items:flex-start;justify-content:center;padding:28px 14px;overflow:auto;font-family:"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:#2C3440}
+  .cs-ov.cs-solid{background:#E7ECF5}
+  .cs-hidden{display:none!important}
+  .cs-card{background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(16,24,40,.28);max-width:460px;width:100%;padding:24px 22px;margin:auto}
+  .cs-brand{font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#EC7000;margin-bottom:6px}
+  .cs-card h2{margin:0 0 8px;font-size:20px;color:#1B2A4A}
+  .cs-card p{margin:0 0 12px;font-size:14px;line-height:1.45;color:#5B6573}
+  .cs-card label{display:block;font-size:12px;font-weight:700;color:#5B6573;text-transform:uppercase;letter-spacing:.3px;margin:12px 0 4px}
+  .cs-card input[type=text],.cs-card input[type=password]{width:100%;padding:11px 12px;border:1px solid #CBD2DC;border-radius:10px;font-size:16px;font-family:inherit;color:#2C3440;background:#fff}
+  .cs-card input:focus{outline:none;border-color:#1B2A4A;box-shadow:0 0 0 3px #E7ECF5}
+  .cs-row{display:flex;gap:8px;align-items:center}
+  .cs-row input{flex:1;min-width:0}
+  .cs-btn{border:1px solid #1B2A4A;background:#1B2A4A;color:#fff;border-radius:10px;padding:12px 16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;margin-top:16px}
+  .cs-btn:hover{background:#0F1B33}.cs-btn:disabled{opacity:.55;cursor:wait}
+  .cs-btn.cs-sec{background:#fff;color:#1B2A4A;border-color:#CBD2DC}.cs-btn.cs-sec:hover{background:#F7F8FA}
+  .cs-btn.cs-acc{background:#EC7000;border-color:#EC7000}.cs-btn.cs-acc:hover{background:#D46400}
+  .cs-btn.cs-mini{width:auto;margin:0;padding:10px 12px;font-size:13px}
+  .cs-err{background:#FBE6E6;border:1px solid #F1C7C7;color:#C62828;border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:600;margin-top:12px}
+  .cs-ok{background:#E4F4EA;border:1px solid #BFE3CD;color:#116135;border-radius:10px;padding:10px 12px;font-size:13.5px;margin-top:12px}
+  .cs-note{background:#FFF0E0;border:1px solid #F6D6B5;color:#8F4400;border-radius:10px;padding:10px 12px;font-size:13px;margin-top:12px}
+  .cs-card details{margin-top:16px;border-top:1px solid #E2E6EC;padding-top:12px;font-size:13px;color:#5B6573}
+  .cs-card summary{cursor:pointer;font-weight:700;color:#1B2A4A}
+  .cs-big{font-family:Consolas,Menlo,monospace;font-size:16px;font-weight:700;background:#F7F8FA;border:1px dashed #A8B0BC;border-radius:10px;padding:10px 12px;word-break:break-all;color:#1B2A4A}
+  .cs-kv{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;font-size:13.5px;margin:10px 0}.cs-kv b{color:#5B6573;font-weight:700}
+  .cs-spin{width:34px;height:34px;border:4px solid #E7ECF5;border-top-color:#EC7000;border-radius:50%;animation:cs-r 1s linear infinite;margin:6px auto 14px}
+  @keyframes cs-r{to{transform:rotate(360deg)}}
+  .cs-center{text-align:center}`;
+
+  function buildUI(){
+    if(ov) return;
+    const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+    ov = document.createElement('div'); ov.className = 'cs-ov cs-hidden'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); document.body.appendChild(ov);
+    pn = document.createElement('div'); pn.className = 'cs-ov cs-hidden'; pn.setAttribute('role', 'dialog'); pn.setAttribute('aria-modal', 'true'); document.body.appendChild(pn);
+    pn.addEventListener('mousedown', e => { if(e.target === pn) closePanel(); });
+  }
+  const $o = sel => ov.querySelector(sel);
+  function showOv(html, solid){ ov.className = 'cs-ov' + (solid ? ' cs-solid' : ''); ov.innerHTML = html; }
+  function hideOv(){ ov.className = 'cs-ov cs-hidden'; ov.innerHTML = ''; }
+
+  function showBlock(text){
+    showOv('<div class="cs-card cs-center"><div class="cs-brand">' + esc(C.title) + '</div><div class="cs-spin"></div><h2>' + esc(text) + '</h2><p>Un momento por favor…</p></div>', true);
+  }
+  function showFailure(){
+    const msg = S.err || 'No se pudo conectar.';
+    showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + '</div><h2>No pudimos cargar los datos</h2><div class="cs-err">' + esc(msg) + '</div>' +
+      '<button class="cs-btn cs-acc" id="cs-retry">Reintentar</button><button class="cs-btn cs-sec" id="cs-reconf">Cambiar configuración</button></div>', true);
+    $o('#cs-retry').onclick = () => { showBlock('Cargando datos del equipo…'); sync('retry').then(afterFirstSync); };
+    $o('#cs-reconf').onclick = () => showSetup('');
+  }
+  function afterFirstSync(){
+    if(S.base){ hideOv(); return; }
+    if(['auth', 'bin', 'mismatch'].indexOf(S.errCode) >= 0){
+      const msg = S.err; if(S.errCode === 'bin' || S.errCode === 'mismatch') store.del(P + 'bin');
+      started = false; showSetup(msg); return;
+    }
+    showFailure();
+  }
+  function showSetup(errMsg, created){
+    buildUI();
+    const key = getKey(), bin = getBin(), name = user();
+    showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + ' · Hipotecario Itaú</div><h2>Conectar con el equipo</h2>' +
+      '<p>Esta herramienta guarda la información en la nube para que <b>todo el equipo vea los mismos datos</b>. Se pide <b>una sola vez</b> en este dispositivo.</p>' +
+      '<label for="cs-name">Tu nombre</label><input type="text" id="cs-name" autocomplete="name" placeholder="Ej.: Karol Riascos" value="' + esc(name) + '">' +
+      '<label for="cs-key">Master Key</label><div class="cs-row"><input type="password" id="cs-key" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(key) + '"><button class="cs-btn cs-sec cs-mini" id="cs-eye" type="button">Ver</button></div>' +
+      '<label for="cs-bin">BIN ID</label><input type="text" id="cs-bin" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(bin) + '">' +
+      (errMsg ? '<div class="cs-err" id="cs-err">' + esc(errMsg) + '</div>' : '<div id="cs-err"></div>') +
+      '<button class="cs-btn" id="cs-go">Guardar y continuar</button>' +
+      '<details><summary>Administrador: crear un espacio nuevo</summary><p style="margin-top:10px">Solo si eres quien configura la herramienta por primera vez. Se crea un BIN nuevo con los datos actuales y se te mostrará el BIN ID para compartirlo. <b>Si tu equipo ya la usa, no crees uno nuevo: pide el BIN ID.</b></p>' +
+      '<button class="cs-btn cs-sec" id="cs-create" type="button">Crear espacio nuevo</button></details></div>', true);
+    $o('#cs-eye').onclick = () => { const i = $o('#cs-key'); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; $o('#cs-eye').textContent = show ? 'Ocultar' : 'Ver'; };
+    $o('#cs-go').onclick = () => submitSetup(false);
+    $o('#cs-create').onclick = () => submitSetup(true);
+    ov.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if(e.key === 'Enter') submitSetup(false); }));
+  }
+  function setupErr(msg){ const e = $o('#cs-err'); if(e){ e.className = msg ? 'cs-err' : ''; e.textContent = msg || ''; } }
+  async function submitSetup(create){
+    const name = $o('#cs-name').value.trim(), key = $o('#cs-key').value.trim(), bin = $o('#cs-bin').value.trim();
+    if(!name){ setupErr('Escribe tu nombre: queda registrado junto a los cambios que hagas.'); return; }
+    if(!key){ setupErr('Ingresa la Master Key.'); return; }
+    if(!create && !bin){ setupErr('Ingresa el BIN ID que te compartió tu equipo.'); return; }
+    store.set(LS_NAME, name); store.set(LS_KEY, key);
+    $o('#cs-go').disabled = true; $o('#cs-create').disabled = true;
+    if(create){
+      try{
+        const seed = C.getData();
+        const env = await pack(seed, 1);
+        const id = await jbCreate(key, env);
+        store.set(P + 'bin', id);
+        S.base = clone(seed); S.rev = 1; S.savedAt = env.savedAt; S.savedBy = env.savedBy; S.lastSync = Date.now(); S.dirty = false; saveMeta();
+        showCreated(id);
+      }catch(e){
+        $o('#cs-go').disabled = false; $o('#cs-create').disabled = false;
+        setupErr(e.message || String(e));
+      }
+      return;
+    }
+    store.set(P + 'bin', bin);
+    S.base = null; S.rev = 0; S.dirty = false; store.del(P + 'sync');
+    showBlock('Conectando con el equipo…');
+    started = true; await sync('setup'); afterFirstSync();
+    if(S.base) attachEvents();
+  }
+  function showCreated(id){
+    showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + '</div><h2>✅ Espacio creado</h2>' +
+      '<p>Este es el <b>BIN ID</b> de esta herramienta. Compártelo con tu equipo junto con la Master Key:</p><div class="cs-big" id="cs-newbin">' + esc(id) + '</div>' +
+      '<div class="cs-note">Guárdalo ahora: es lo que cada persona debe ingresar la primera vez.</div>' +
+      '<button class="cs-btn cs-sec" id="cs-copy" type="button">Copiar BIN ID</button><button class="cs-btn" id="cs-cont">Continuar</button></div>', true);
+    $o('#cs-copy').onclick = () => { try{ navigator.clipboard.writeText(id); $o('#cs-copy').textContent = 'Copiado ✓'; }catch(e){ const r = document.createRange(); r.selectNodeContents($o('#cs-newbin')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } };
+    $o('#cs-cont').onclick = () => { hideOv(); started = true; attachEvents(); setStatus('ok'); try{ C.applyData(C.getData()); }catch(e){} };
+  }
+
+  /* Panel de sincronización (botón del encabezado) */
+  function openPanel(){ buildUI(); renderPanel(); pn.className = 'cs-ov'; }
+  function closePanel(){ pn.className = 'cs-ov cs-hidden'; pn.innerHTML = ''; }
+  function renderPanel(){
+    const i = info();
+    const cls = i.state === 'ok' ? 'cs-ok' : (i.state === 'error' ? 'cs-err' : 'cs-note');
+    pn.innerHTML = '<div class="cs-card"><div class="cs-brand">' + esc(C.title) + '</div><h2>Sincronización</h2>' +
+      '<div class="' + cls + '">' + esc(i.text) + (i.dirty && i.state !== 'saving' ? ' · hay cambios pendientes de envío' : '') + '</div>' +
+      '<div class="cs-kv"><b>Última vez</b><span>' + esc(i.last || '—') + '</span><b>Tu nombre</b><span><input type="text" id="cs-pname" value="' + esc(i.user) + '"></span><b>BIN ID</b><span style="word-break:break-all;font-family:Consolas,Menlo,monospace">' + esc(i.bin) + '</span></div>' +
+      '<button class="cs-btn cs-acc" id="cs-now">Actualizar ahora</button>' +
+      '<button class="cs-btn cs-sec" id="cs-copybin">Copiar BIN ID</button>' +
+      '<button class="cs-btn cs-sec" id="cs-close">Cerrar</button>' +
+      '<details><summary>Cambiar de espacio o cerrar sesión en este dispositivo</summary><p style="margin-top:10px">Se borrarán de este dispositivo la Master Key, el BIN ID y la copia local. Los datos del equipo no se tocan.</p><button class="cs-btn cs-sec" id="cs-out" type="button">Olvidar configuración</button></details></div>';
+    const q = s => pn.querySelector(s);
+    q('#cs-now').onclick = async () => { q('#cs-now').disabled = true; await refresh(); };
+    q('#cs-copybin').onclick = () => { try{ navigator.clipboard.writeText(i.bin); q('#cs-copybin').textContent = 'Copiado ✓'; }catch(e){} };
+    q('#cs-close').onclick = closePanel;
+    q('#cs-pname').onchange = e => { const v = e.target.value.trim(); if(v) store.set(LS_NAME, v); };
+    q('#cs-out').onclick = () => { store.del(P + 'bin'); store.del(P + 'sync'); started = false; S.base = null; closePanel(); showSetup(''); };
+  }
+
+  /* ---------- eventos del navegador ---------- */
+  let evAttached = false;
+  function attachEvents(){
+    if(evAttached) return; evAttached = true;
+    window.addEventListener('online', () => { if(S.dirty || S.state === 'offline') sync('online'); });
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'hidden'){ if(S.dirty && !S.busy){ clearTimeout(saveTimer); sync('hidden'); } }
+      else if(Date.now() - S.lastSync > 600000 && !S.busy && !modalOpen()) sync('visible');
+    });
+    window.addEventListener('beforeunload', e => { if(S.dirty){ e.preventDefault(); e.returnValue = ''; } });
+  }
+
+  /* ---------- arranque ---------- */
+  /** cfg: {app,prefix,title,binName,getData(),applyData(d),onStatus(info),isBusyUI(),prepend:[]} */
+  function init(cfg){
+    C = cfg; P = cfg.prefix + '_';
+    buildUI(); loadMeta();
+    if(!getKey() || !getBin()){ showSetup(''); return; }
+    started = true;
+    if(!S.base) showBlock('Cargando datos del equipo…');
+    sync('start').then(() => { if(!S.base) afterFirstSync(); else attachEvents(); });
+    if(S.base) attachEvents();
+    setStatus('loading');
+  }
+
+  return {init, changed, refresh, openPanel, info, user, _test:{merge, deepEqual, S, sync}};
+})();
+
+</script>
+<script>
+'use strict';
+/* =========================================================
+   1. CONSTANTES
+   ========================================================= */
+const STORAGE_KEY = 'control_toctoc_itau_v2';
+const TOCTOC_STATES = ['Publicado, No cliente', 'Publicado, Cliente', 'Pendiente', 'Eliminado de pago', 'Eliminado de landing'];
+const LANDING_STATES = ['Publicado', 'Pendiente de publicación', 'Eliminado de landing'];
+const REVIEW_STATES = ['Pendiente', 'Conforme', 'Requiere revisión', 'Rechazado'];
+const GENERAL_STATES = ['Conforme', 'Requiere revisión', 'Rechazado'];
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const TABS = [
+  {id:'dashboard', label:'◧ Dashboard'},
+  {id:'projects', label:'▤ Proyectos'},
+  {id:'alerts', label:'⚠ Alertas'},
+  {id:'liq', label:'◈ Liquidación mensual'},
+  {id:'history', label:'⟲ Historial'},
+  {id:'config', label:'⚙ Configuración'}
+];
+const SHARE_NOTE = 'Los datos se guardan en la nube y los ve todo el equipo (se ingresa una vez la Master Key y el BIN ID). Cada cambio se envía automáticamente; sin conexión, queda en este equipo y se envía al reconectar. Descarga respaldos periódicamente.';
+
+/* =========================================================
+   2. UTILIDADES (fechas, números, texto)
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uid(){ return 'id' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function todayISO(){ const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function currentYM(){ return todayISO().slice(0, 7); }
+function nowStamp(){ const d = new Date(); return `${todayISO()}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+/** Muestra un timestamp interno como DD/MM/AAAA HH:MM */
+function fmtStamp(s){ if(!s) return '—'; const [d, t] = String(s).split('T'); return fmtCL(d) + (t ? ' ' + t.slice(0, 5) : ''); }
+function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); }
+/** Valida una fecha interna ISO AAAA-MM-DD */
+function isValidISO(s){
+  if(typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split('-').map(Number);
+  if(y < 1990 || y > 2100 || m < 1 || m > 12 || d < 1) return false;
+  return d <= daysInMonth(y, m);
+}
+/** Formato chileno DD/MM/AAAA para mostrar */
+function fmtCL(iso){ if(!iso) return '—'; if(!isValidISO(iso)) return 'Inválida'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function ymOf(iso){ return String(iso).slice(0, 7); }
+function isValidYM(s){ return /^\d{4}-(0[1-9]|1[0-2])$/.test(s || ''); }
+/** Suma meses a un periodo AAAA-MM comparando año y mes (sin días fijos) */
+function addMonths(ym, n){ const [y, m] = ym.split('-').map(Number); const t = y * 12 + (m - 1) + n; return `${Math.floor(t / 12)}-${pad((t % 12) + 1)}`; }
+/** Diferencia en meses calendario entre dos periodos AAAA-MM */
+function monthDiff(a, b){ const [ay, am] = a.split('-').map(Number), [by, bm] = b.split('-').map(Number); return (by - ay) * 12 + (bm - am); }
+function periodLabel(ym){ if(!isValidYM(ym)) return '—'; const [y, m] = ym.split('-').map(Number); return `${MONTHS[m-1]} ${y}`; }
+function periodShort(ym){ if(!isValidYM(ym)) return '—'; const [y, m] = ym.split('-').map(Number); return `${MONTHS_SHORT[m-1]}-${y}`; }
+/** Interpreta estrictamente DD/MM/AAAA (nunca MM/DD). Devuelve ISO o null */
+function parseCLStrict(str){
+  const s = String(str || '').trim();
+  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if(!m) return null;
+  const iso = `${m[3]}-${pad(+m[2])}-${pad(+m[1])}`;
+  return isValidISO(iso) ? iso : null;
+}
+/** Interpreta fechas de importación según el formato elegido (DMY por defecto). */
+function parseDateFlexible(raw, fmt){
+  let s = String(raw ?? '').trim();
+  if(!s) return {iso:'', empty:true};
+  s = s.replace(/\s+\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?\s*m\.?)?$/i, ''); // quita hora "0:00"
+  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)){
+    const [y, m, d] = s.split('-'); const iso = `${y}-${pad(+m)}-${pad(+d)}`;
+    return isValidISO(iso) ? {iso} : {error:'Fecha inválida'};
+  }
+  if(/^\d{5}(\.\d+)?$/.test(s)){ // número de serie de Excel
+    const n = Math.floor(parseFloat(s)); const d = new Date(Date.UTC(1899, 11, 30) + n * 86400000);
+    const iso = d.toISOString().slice(0, 10);
+    return isValidISO(iso) ? {iso} : {error:'Fecha inválida'};
+  }
+  const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(!m) return {error:'Formato no reconocido'};
+  if(m[3].length !== 4) return {error:'Año incompleto (usar AAAA)'};
+  const a = +m[1], b = +m[2];
+  const [d, mo] = fmt === 'MDY' ? [b, a] : [a, b];
+  const iso = `${m[3]}-${pad(mo)}-${pad(d)}`;
+  if(!isValidISO(iso)) return {error:'Fecha inválida para ' + (fmt === 'MDY' ? 'MM/DD/AAAA' : 'DD/MM/AAAA')};
+  return {iso, both12: a <= 12 && b <= 12 && a !== b};
+}
+/** Convierte "0,5" o "0.5" en número */
+function parseNum(v){
+  if(typeof v === 'number') return v;
+  let s = String(v ?? '').trim().replace(/\s/g, '');
+  if(!s) return NaN;
+  if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  return /^-?\d+(\.\d+)?$/.test(s) ? parseFloat(s) : NaN;
+}
+const r4 = x => Math.round((Number(x) || 0) * 10000) / 10000;
+/** Número con coma decimal (formato chileno) */
+function fmtNum(n, max = 2){ return Number(n || 0).toLocaleString('es-CL', {minimumFractionDigits:0, maximumFractionDigits:max}); }
+function fmtUF(n){ return fmtNum(n) + ' ' + (state ? state.config.currency : 'UF'); }
+function fmtDiff(n){ const v = r4(n); const cls = v > 0 ? 'diff-pos' : v < 0 ? 'diff-neg' : 'diff-zero'; return `<span class="${cls}">${v > 0 ? '+' : ''}${fmtUF(v)}</span>`; }
+function norm(s){ return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* =========================================================
+   3. ESTADO Y PERSISTENCIA (localStorage)
+   ========================================================= */
+let state = null;
+let storageOK = true;
+const ui = {
+  period: null, tab: 'dashboard',
+  sort: {key:'pubDate', dir:'desc'},
+  f: {q:'', group:'', toctoc:'', billing:'', landing:'', pay:'', alerts:false, archived:false},
+  alertFilter: 'all', showReviewed: true
+};
+function defaultConfig(){
+  return {bannerUF:20, leadUF:0.5, incUnitUF:1, incMaxUF:20, incLimit:20, maxMonths:3,
+    counterpart:'TOCTOC', payer:'Itaú', currency:'UF', defaultPeriod:'', ivaPct:19};
+}
+function defaultState(){
+  return {version:1, config:defaultConfig(), projects:[], alertReviews:{}, settlements:{}, closures:{}, closureArchive:[], log:[], lastSaved:null};
+}
+function defaultSettlement(){
+  return {banner:{active:true, unit:null, billedQty:null, obs:'', review:'Pendiente'},
+          leads:{billedQty:null, obs:'', review:'Pendiente'},
+          inc:{billedQty:null, obs:'', review:'Pendiente'},
+          ivaOn:false, ivaPct:null, generalStatus:'', obs:''};
+}
+function cfg(){ return state.config; }
+/** Normaliza un estado cargado (respaldo o localStorage) para evitar campos faltantes */
+function normalizeState(raw){
+  const s = Object.assign(defaultState(), raw || {});
+  s.config = Object.assign(defaultConfig(), s.config || {});
+  s.projects = Array.isArray(s.projects) ? s.projects : [];
+  s.projects.forEach(p => {
+    p.id = p.id || uid(); p.name = p.name || ''; p.group = p.group || ''; p.notes = p.notes || '';
+    if(!TOCTOC_STATES.includes(p.toctoc)) p.toctoc = 'Pendiente';
+    if(!LANDING_STATES.includes(p.landing)) p.landing = 'Publicado';
+    p.pubDate = p.pubDate || ''; p.billingHistory = p.billingHistory || [];
+    p.billingRemoved = p.billingRemoved || null; p.landingRemoved = p.landingRemoved || null;
+    p.archived = !!p.archived;
+  });
+  ['alertReviews','settlements','closures'].forEach(k => { if(!s[k] || typeof s[k] !== 'object') s[k] = {}; });
+  Object.keys(s.settlements).forEach(k => {
+    const d = defaultSettlement(), x = s.settlements[k];
+    s.settlements[k] = Object.assign(d, x, {banner:Object.assign(d.banner, x.banner || {}), leads:Object.assign(d.leads, x.leads || {}), inc:Object.assign(d.inc, x.inc || {})});
+  });
+  s.closureArchive = Array.isArray(s.closureArchive) ? s.closureArchive : [];
+  s.log = Array.isArray(s.log) ? s.log : [];
+  return s;
+}
+function load(){
+  try { const t = '__toctoc_test__'; localStorage.setItem(t, t); localStorage.removeItem(t); }
+  catch(e){ storageOK = false; }
+  if(storageOK){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      try { state = normalizeState(JSON.parse(raw)); }
+      catch(e){ state = null; setTimeout(() => toast('Los datos guardados estaban dañados. Se cargaron datos de demostración. Si tienes un respaldo JSON, restáuralo.', 'error'), 300); }
+    }
+  }
+  if(!state){ state = defaultState(); seedDemo(); save(); }
+  ui.period = isValidYM(cfg().defaultPeriod) ? cfg().defaultPeriod : currentYM();
+}
+/** Guarda automáticamente después de cada cambio */
+function save(){
+  state.lastSaved = nowStamp();
+  if(storageOK){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch(e){ storageOK = false; toast('No fue posible guardar en localStorage: ' + e.message, 'error'); }
+  }
+  CloudSync.changed();
+  renderSaveIndicator();
+}
+function addLog(action, detail){
+  state.log.unshift({at:nowStamp(), period:ui.period, action, detail:detail || '', by:CloudSync.user()});
+  if(state.log.length > 600) state.log.length = 600;
+}
+function getSet(P, create){
+  if(!state.settlements[P]){ if(!create) return defaultSettlement(); state.settlements[P] = defaultSettlement(); }
+  return state.settlements[P];
+}
+function findP(id){ return state.projects.find(p => p.id === id); }
+
+/* =========================================================
+   4. LÓGICA DE NEGOCIO
+   ========================================================= */
+/** Periodos de pago (mes 1..N) de un proyecto */
+function payMonths(p){ if(!isValidISO(p.pubDate)) return []; const ym = ymOf(p.pubDate); return Array.from({length:cfg().maxMonths}, (_, i) => addMonths(ym, i)); }
+/** Fecha desde la cual no corresponde pagar = inicio del mes N+1 */
+function noPayDate(p){ if(!isValidISO(p.pubDate)) return ''; return addMonths(ymOf(p.pubDate), cfg().maxMonths) + '-01'; }
+
+/**
+ * Estado de cobro de un proyecto en un periodo AAAA-MM.
+ * Códigos: CHARGE (cobrable mes m), OUT (mes > N, eliminar del cobro), CLIENT, RB (eliminado del cobro),
+ * RL (eliminado de landing), PEND (pendiente), NS (aún no inicia), INV (fecha inválida), ARC (archivado)
+ */
+function statusInfo(p, period){
+  const N = cfg().maxMonths;
+  const mk = (code, m) => {
+    const d = {
+      CHARGE: {cls: m === N ? 'yellow' : 'green', pay:`Mes ${m} de ${N}`, bill: m === N ? 'Cobrable · último mes' : 'Cobrable'},
+      OUT: {cls:'red', pay:'Fuera de periodo', bill:'Eliminar del cobro'},
+      CLIENT: {cls:'blue', pay:`No aplica, cliente ${cfg().counterpart}`, bill:'No se cobra (cliente)'},
+      RB: {cls:'gray', pay:'Fuera de periodo', bill:'Eliminado del cobro'},
+      RL: {cls:'gray', pay:'Fuera de periodo', bill:'Sin cobro (fuera de landing)'},
+      PEND: {cls:'gray', pay:'Pendiente', bill:'Sin cobro (pendiente)'},
+      NS: {cls:'gray', pay:'Aún no publicado', bill:'Sin cobro (aún no inicia)'},
+      INV: {cls:'gray', pay:'Revisar fecha', bill:'Revisar fecha'},
+      ARC: {cls:'gray', pay:'Archivado', bill:'Archivado'}
+    }[code];
+    return {code, m: m || null, cls:d.cls, payLabel:d.pay, billingLabel:d.bill, chargeable: code === 'CHARGE'};
+  };
+  if(p.archived) return mk('ARC');
+  let st = p.toctoc;
+  if(st === 'Eliminado de pago'){
+    if(p.billingRemoved && isValidYM(p.billingRemoved.period) && period < p.billingRemoved.period) st = p.billingRemoved.prevStatus || 'Publicado, No cliente';
+    else return mk('RB');
+  }
+  if(p.landing === 'Eliminado de landing' || st === 'Eliminado de landing'){
+    if(p.landingRemoved && isValidYM(p.landingRemoved.period) && period < p.landingRemoved.period){
+      if(st === 'Eliminado de landing') st = p.landingRemoved.prevStatus || 'Publicado, No cliente';
+    } else return mk('RL');
+  }
+  if(st === 'Pendiente' || p.landing === 'Pendiente de publicación') return mk('PEND');
+  if(!isValidISO(p.pubDate)) return mk('INV');
+  const m = monthDiff(ymOf(p.pubDate), period) + 1;
+  if(m < 1) return mk('NS');
+  if(st === 'Publicado, Cliente') return mk('CLIENT', m);
+  if(st === 'Eliminado de landing') return mk('RL');
+  return m <= N ? mk('CHARGE', m) : mk('OUT', m);
+}
+function rowsFor(P){ return state.projects.map(p => ({p, si:statusInfo(p, P)})); }
+function isPublishedIn(r, P){
+  if(['CHARGE','OUT','CLIENT'].includes(r.si.code)) return true;
+  return r.si.code === 'RB' && isValidISO(r.p.pubDate) && ymOf(r.p.pubDate) <= P && r.p.landing !== 'Eliminado de landing';
+}
+
+/** Genera las alertas automáticas del periodo */
+function computeAlerts(P){
+  const c = cfg(), N = c.maxMonths, out = [];
+  const active = state.projects.filter(p => !p.archived);
+  const groupsWithClients = new Set(active.filter(p => p.toctoc === 'Publicado, Cliente').map(p => norm(p.group)).filter(g => g && g !== 'sin grupo'));
+  const dupMap = {};
+  active.forEach(p => { const k = norm(p.name) + '|' + norm(p.group); (dupMap[k] = dupMap[k] || []).push(p); });
+  active.forEach(p => {
+    const si = statusInfo(p, P);
+    const add = (type, severity, reason, action) => out.push({key:type + ':' + p.id, type, severity, p, si, reason, action});
+    if(si.code === 'CHARGE' && si.m === N)
+      add('last', 'info', `Está en el mes ${N} de ${N}: es su último mes de pago.`, `Mantener en el cobro de ${periodLabel(P)} e informar a ${c.counterpart} que desde el ${fmtCL(noPayDate(p))} no corresponde cobrarlo.`);
+    if(si.code === 'OUT')
+      add('out', 'critical', `Llegó al mes ${si.m}: ya se pagaron sus ${N} meses. No corresponde pagar desde el ${fmtCL(noPayDate(p))}.`, 'Eliminar del cobro y verificar que no venga en la factura.');
+    if(si.code === 'INV' || (p.pubDate && !isValidISO(p.pubDate)))
+      add('date', 'critical', p.pubDate ? `Fecha de publicación inválida (${esc(p.pubDate)}).` : 'Fecha de publicación incompleta.', 'Completar o corregir la fecha en formato DD/MM/AAAA.');
+    if(isValidISO(p.pubDate) && isValidISO(p.noPayImported) && ymOf(p.noPayImported) !== ymOf(noPayDate(p)))
+      add('dateinc', 'critical', `La fecha "Desde no pago" informada (${fmtCL(p.noPayImported)}) no coincide con la calculada (${fmtCL(noPayDate(p))}).`, 'Verificar si la fecha venía en formato MM/DD/AAAA y corregir la fecha de publicación.');
+    const dups = dupMap[norm(p.name) + '|' + norm(p.group)];
+    if(dups.length > 1)
+      add('dup', 'critical', `Posible duplicado: hay ${dups.length} registros con el mismo nombre e inmobiliaria.`, 'Revisar y archivar el registro repetido para no pagarlo dos veces.');
+    if(si.code === 'CHARGE' && groupsWithClients.has(norm(p.group)))
+      add('client', 'critical', `La inmobiliaria ${esc(p.group)} tiene proyectos marcados como cliente ${esc(c.counterpart)}, pero este proyecto se está incluyendo en el pago.`, `Confirmar con ${esc(c.counterpart)}. Si es cliente, cambiar a "Publicado, Cliente" o eliminar del cobro.`);
+    if(si.code === 'CLIENT'){ const nt = norm(p.notes); if(/se paga/.test(nt) && !/no se paga/.test(nt))
+      add('client', 'critical', `Está marcado como cliente ${esc(c.counterpart)}, pero su detalle indica que se paga.`, 'Corregir el detalle o el estado TOCTOC.'); }
+  });
+  const rev = state.alertReviews[P] || {};
+  out.forEach(a => { const r = rev[a.key]; a.reviewed = !!(r && r.reviewed); a.comment = r ? (r.comment || '') : ''; a.reviewedAt = r ? r.date : null; });
+  const order = {out:0, client:1, date:2, dateinc:3, dup:4, last:5};
+  out.sort((a, b) => (a.reviewed - b.reviewed) || (order[a.type] - order[b.type]) || a.p.name.localeCompare(b.p.name, 'es'));
+  return out;
+}
+
+/** Calcula la liquidación mensual del periodo */
+function computeSettlement(P){
+  const c = cfg(), s = getSet(P, false), rows = rowsFor(P);
+  const chargeable = rows.filter(r => r.si.code === 'CHARGE');
+  const incorporated = chargeable.filter(r => r.si.m === 1);
+  const incorporatedAll = rows.filter(r => !r.p.archived && r.p.toctoc !== 'Pendiente' && isValidISO(r.p.pubDate) && ymOf(r.p.pubDate) === P);
+  const outRows = rows.filter(r => r.si.code === 'OUT' || r.si.code === 'RB');
+  const clientRows = rows.filter(r => r.si.code === 'CLIENT');
+  const bUnit = (s.banner.unit != null && !isNaN(s.banner.unit)) ? s.banner.unit : c.bannerUF;
+  const incFn = q => q >= c.incLimit ? c.incMaxUF : Math.min(q * c.incUnitUF, c.incMaxUF);
+  const mk = (key, name, desc, unit, autoQty, src, totalFn) => {
+    const billedQty = (src.billedQty == null || isNaN(src.billedQty)) ? autoQty : src.billedQty;
+    const autoTotal = r4(totalFn(autoQty)), billedTotal = r4(totalFn(billedQty)), diff = r4(billedTotal - autoTotal);
+    const obs = src.obs || '';
+    const mismatch = billedQty !== autoQty || Math.abs(diff) > 1e-9;
+    return {key, name, desc, unit, autoQty, billedQty, manual: src.billedQty != null, autoTotal, billedTotal, diff, obs,
+      review: src.review || 'Pendiente', mismatch, needsJust: mismatch && !obs.trim()};
+  };
+  const items = [
+    mk('banner', 'Actualización de banners', `Valor fijo mensual por actualización de banners de la landing${s.banner.active ? '' : ' (cobro desactivado este mes)'}.`, bUnit, s.banner.active ? 1 : 0, s.banner, q => q * bUnit),
+    mk('leads', 'Envío de leads a inmobiliarias', `${fmtNum(c.leadUF)} UF por cada proyecto "Publicado, No cliente" dentro de sus ${c.maxMonths} meses de pago.`, c.leadUF, chargeable.length, s.leads, q => q * c.leadUF),
+    mk('inc', 'Incorporación de proyectos en la landing', `${fmtNum(c.incUnitUF)} UF por proyecto incorporado en el mes (incluye clientes); tope ${fmtNum(c.incMaxUF)} UF hasta ${c.incLimit} proyectos.`, c.incUnitUF, incorporatedAll.length, s.inc, incFn)
+  ];
+  items[0].active = !!s.banner.active;
+  const subAuto = r4(items.reduce((a, i) => a + i.autoTotal, 0));
+  const subBilled = r4(items.reduce((a, i) => a + i.billedTotal, 0));
+  const ivaPct = (s.ivaPct != null && !isNaN(s.ivaPct)) ? s.ivaPct : c.ivaPct;
+  const iva = r4(subBilled * ivaPct / 100);
+  const total = r4(subBilled + (s.ivaOn ? iva : 0));
+  const diff = r4(subBilled - subAuto);
+  const autoGeneral = items.some(i => i.review === 'Rechazado') ? 'Rechazado'
+    : (Math.abs(diff) > 1e-9 || items.some(i => i.mismatch) || items.some(i => i.review !== 'Conforme')) ? 'Requiere revisión' : 'Conforme';
+  return {P, items, chargeable, incorporated, incorporatedAll, outRows, clientRows, subAuto, subBilled, ivaPct, ivaOn: !!s.ivaOn,
+    iva, total, diff, autoGeneral, general: s.generalStatus || autoGeneral, generalManual: !!s.generalStatus, obs: s.obs || '',
+    incOverLimit: incorporatedAll.length > c.incLimit};
+}
+function snapRow(r){ return {id:r.p.id, name:r.p.name, group:r.p.group, toctoc:r.p.toctoc, pubDate:r.p.pubDate, noPay:noPayDate(r.p), m:r.si.m, payLabel:r.si.payLabel, billingLabel:r.si.billingLabel, notes:r.p.notes}; }
+/** Fotografía inmutable del periodo al cerrar */
+function buildSnapshot(P){
+  const st = computeSettlement(P), rows = rowsFor(P);
+  return {
+    period:P, config:clone(cfg()),
+    counts:{published: rows.filter(r => isPublishedIn(r, P)).length, chargeable: st.chargeable.length, out: st.outRows.length,
+      clients: st.clientRows.length, incorporated: st.incorporated.length, incorporatedAll: st.incorporatedAll.length},
+    chargeable: st.chargeable.map(snapRow), outList: st.outRows.map(snapRow), clientList: st.clientRows.map(snapRow),
+    incorporatedList: st.incorporatedAll.map(snapRow),
+    items: clone(st.items), subAuto: st.subAuto, subBilled: st.subBilled, ivaPct: st.ivaPct, ivaOn: st.ivaOn, iva: st.iva,
+    total: st.total, diff: st.diff, general: st.general, obs: st.obs
+  };
+}
+/** Validaciones previas al cierre */
+function closeChecks(P){
+  const alerts = computeAlerts(P), st = computeSettlement(P);
+  const invalid = alerts.filter(a => a.type === 'date');
+  const crit = alerts.filter(a => a.severity === 'critical' && a.type !== 'date' && !a.reviewed);
+  const unjust = st.items.filter(i => i.needsJust);
+  const unrev = st.items.filter(i => !i.review || i.review === 'Pendiente');
+  const names = arr => arr.slice(0, 8).map(x => esc(x)).join(', ') + (arr.length > 8 ? '…' : '');
+  return [
+    {label:'No existen fechas inválidas o incompletas', ok: !invalid.length, detail: invalid.length ? `${invalid.length} proyecto(s): ${names(invalid.map(a => a.p.name))}` : ''},
+    {label:'Alertas críticas revisadas', ok: !crit.length, detail: crit.length ? `${crit.length} alerta(s) sin revisar: ${names(crit.map(a => a.p.name))}` : ''},
+    {label:'Diferencias entre cálculo y factura justificadas', ok: !unjust.length, detail: unjust.length ? 'Falta observación en: ' + names(unjust.map(i => i.name)) : ''},
+    {label:'Todos los ítems tienen estado de revisión', ok: !unrev.length, detail: unrev.length ? 'Pendiente en: ' + names(unrev.map(i => i.name)) : ''},
+    {label:'El periodo no ha sido cerrado anteriormente', ok: !state.closures[P], detail: state.closures[P] ? 'Cerrado el ' + fmtStamp(state.closures[P].closedAt) : ''}
+  ];
+}
+
+/* =========================================================
+   5. DATOS BASE · DatosLanding2026.xlsx
+   Pestaña "Carga proyectos" (proyectos) y "Pagos mensuales" (abril–septiembre 2026)
+   ========================================================= */
+const EXCEL_SOURCE = 'DatosLanding2026.xlsx';
+const EXCEL_PROJECTS = [
+  // [proyecto, grupo, estado TOCTOC, fecha carga (ISO), desde fecha no pago (ISO), detalle]
+  ['EDIFICIO ROZAS','CISS','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['COND. COSTA HORIZONTE ET I','ELQUI','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['COND. VIÑEDOS DE RANCAGUA ET II','FRANCISCO LORCA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO ARTURO PRAT','ABSAL','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO ALAMEDA','SURMONTE','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO ALESSANDRI (ALBORADA)','ALBORADA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['PLAZA LÍA AGUIRRE 384','HABITE','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO DOMEYKO','BRICSA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO NEO YUNGAY','NEOURBE','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['COND. BORDE ANDINO ED I','NASH','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO MARTÍN DE SOLIER','HABITE','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO CONDE DE MAULE','SOCOVESA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO ÑUBLE II','SOCOVESA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['COND. TERRAZAS DE CHICUREO ET VI','SALFACORP','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['ECO CERRILLOS','FUNDAMENTA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO QUARTZ','AVSA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['JARDÍN FLORESTA ET iV-V-VI','PLAENGE','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO HERAS 1565','LAS BRUJAS','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO OPTIMUS','INCOVIBA','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['EDIFICIO MONTEMARE','INTEGRAL','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['CONJ. HAB. ALTOS DEL PEDREGAL','MARTABID','Publicado, No cliente','2026-03-01','2026-06-01','Ok, se elimina informe Junio porque se cumplieron los 3 meses'],
+  ['CONDOMINIO VISTA CHINQUIHUE','MARTABID','Publicado, No cliente','2026-05-01','2026-08-01','Ok, se elimina informe Julio porque se cumplieron los 3 meses'],
+  ['EDIFICIO BEST SITE (PROYECTO ROSAS) 1','IMAGINA','Publicado, No cliente','2026-05-01','2026-08-01','Ok, se elimina informe Julio porque se cumplieron los 3 meses'],
+  ['EDIFICIO CONCEPTO SMART MONTEMAR 1','IMAGINA','Publicado, No cliente','2026-05-01','2026-08-01','Ok, se elimina informe Julio porque se cumplieron los 3 meses'],
+  ['Distrito Paulista','PLAENGE','Publicado, No cliente','2026-06-01','2026-09-01','Ok, se elimina informe Agosto porque se cumplieron los 3 meses'],
+  ['EDFICIO WALKER MARTÍNEZ','ACTIVA','Publicado, No cliente','2026-06-01','2026-09-01','Ok, se elimina informe Agosto porque se cumplieron los 3 meses'],
+  ['CONDOMINIO ALONSO DE ERCILLA','ACTIVA','Publicado, No cliente','2026-06-01','2026-09-01','Ok, se elimina informe Agosto porque se cumplieron los 3 meses'],
+  ['EDIFICIO ALICANTE','MOLLER','Publicado, Cliente','2026-06-01','2026-09-01','No se paga, cliente toctoc'],
+  ['EDIFICIO ARGENTINA','MOLLER','Publicado, Cliente','2026-06-01','2026-09-01','No se paga, cliente toctoc'],
+  ['EDIFICIO VISTA FRANCIA','MOLLER','Publicado, Cliente','2026-06-01','2026-09-01','No se paga, cliente toctoc'],
+  ['Edificio Puerta La Florida','SIN GRUPO','Publicado, No cliente','2026-07-01','2026-10-01','Se paga lead hasta informe de Septiembre, eliminar en informe de Noviembre. (Grupo no informado en el Excel)'],
+  ['EDIFICIO DÚO CARVAJAL','SALFACORP','Publicado, No cliente','2026-07-01','2026-10-01','Se paga lead hasta informe de Septiembre, eliminar en informe de Noviembre'],
+  ['VICUÑA MACKENNA 1432','EURO','Publicado, No cliente','2026-07-01','2026-10-01','Se paga lead hasta informe de Septiembre, eliminar en informe de Noviembre'],
+  ['BORDE BLANCO 2B','SALFACORP','Publicado, No cliente','2026-08-01','2026-11-01','Se paga lead hasta informe de Octubre, eliminar en informe de Diciembre'],
+  ['Botrolhue Townhouse','SIN GRUPO','Publicado, No cliente','2026-08-01','2026-11-01','Se paga lead hasta informe de Octubre, eliminar en informe de Diciembre'],
+  ['EDIFICIO MIRADOR CENTRAL','INNOVAVISION','Publicado, No cliente','2026-08-01','2026-11-01','Se paga lead hasta informe de Octubre, eliminar en informe de Diciembre'],
+  ['EDIFICIO INNOVA ÁLAMOS','INNOVAVISION','Publicado, No cliente','2026-08-01','2026-11-01','Se paga lead hasta informe de Octubre, eliminar en informe de Diciembre']
+];
+/* Pagos mensuales efectivamente realizados (pestaña "Pagos mensuales"). Cantidades facturadas por ítem. */
+const EXCEL_PAYMENTS = [
+  {period:'2026-04', banner:1, leads:33, inc:0, total:36.5, leadsObs:'Excel: 21 proyectos de abril + 12 "lo faltante de marzo" (6 UF).', incObs:'Excel: sin cobro de incorporación ("-").'},
+  {period:'2026-05', banner:1, leads:24, inc:4, total:36},
+  {period:'2026-06', banner:1, leads:6,  inc:6, total:29},
+  {period:'2026-07', banner:1, leads:7,  inc:4, total:27.5},
+  {period:'2026-08', banner:1, leads:8,  inc:4, total:28},
+  {period:'2026-09', banner:1, leads:8,  inc:0, total:24}
+];
+/** Carga los proyectos y los pagos históricos del Excel */
+function seedDemo(){
+  const now = nowStamp(), N = cfg().maxMonths;
+  EXCEL_PROJECTS.forEach(([name, group, toctoc, pub, nopay, notes]) => {
+    const p = {id:uid(), demo:false, source:EXCEL_SOURCE, archived:false, name, group, toctoc, pubDate:pub, landing:'Publicado', notes,
+      noPayImported:nopay, billingRemoved:null, landingRemoved:null, billingHistory:[], createdAt:now, updatedAt:now};
+    // Proyectos no cliente que ya cumplieron sus meses antes del mes actual: se registran como eliminados del cobro (según Excel)
+    const removalPeriod = addMonths(ymOf(pub), N);
+    if(toctoc === 'Publicado, No cliente' && removalPeriod < currentYM()){
+      p.toctoc = 'Eliminado de pago';
+      p.billingRemoved = {date:removalPeriod + '-01', period:removalPeriod, comment:'Cumplió 3 meses de pago (según ' + EXCEL_SOURCE + ')', prevStatus:'Publicado, No cliente', at:removalPeriod + '-01T00:00:00'};
+    }
+    state.projects.push(p);
+  });
+  // Cierres históricos con lo pagado (abril–septiembre)
+  EXCEL_PAYMENTS.forEach(x => {
+    if(state.closures[x.period]) return;
+    const s = getSet(x.period, true);
+    s.banner.billedQty = x.banner; s.banner.review = 'Conforme';
+    s.leads.billedQty = x.leads; s.inc.billedQty = x.inc;
+    let t = computeSettlement(x.period);
+    const li = t.items[1], ii = t.items[2];
+    s.leads.obs = x.leadsObs || (li.mismatch ? `Pagado según Excel: ${x.leads} proyectos. Cálculo por fechas: ${li.autoQty}. Revisar con ${cfg().counterpart}.` : 'Coincide con el cálculo.');
+    s.inc.obs = x.incObs || (ii.mismatch ? `Pagado según Excel: ${x.inc} proyectos. Incorporados según fechas: ${ii.autoQty}. Revisar con ${cfg().counterpart}.` : 'Coincide con el cálculo.');
+    s.leads.review = (li.mismatch && !x.leadsObs) ? 'Requiere revisión' : 'Conforme';
+    s.inc.review = (ii.mismatch && !x.incObs) ? 'Requiere revisión' : 'Conforme';
+    t = computeSettlement(x.period);
+    s.generalStatus = t.items.some(i => i.review === 'Requiere revisión') ? 'Requiere revisión' : 'Conforme';
+    s.obs = `Pago histórico cargado desde ${EXCEL_SOURCE} (pestaña "Pagos mensuales"). Total pagado: ${fmtNum(x.total)} UF.`;
+    state.closures[x.period] = {id:uid(), period:x.period, closedAt:now, source:EXCEL_SOURCE,
+      snapshot:Object.assign(buildSnapshot(x.period), {closeNote:'Cierre histórico cargado desde Excel'})};
+  });
+  addLog('Carga de datos base', `${EXCEL_PROJECTS.length} proyectos y ${EXCEL_PAYMENTS.length} meses pagados desde ${EXCEL_SOURCE}.`);
+}
+/* =========================================================
+   6. COMPONENTES DE INTERFAZ (toasts, modales, tooltips)
+   ========================================================= */
+function toast(msg, type = 'info', ms = 4200){
+  const icons = {success:'✔', error:'✖', warn:'⚠', info:'ℹ'};
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${icons[type] || 'ℹ'}</span><div>${msg}</div>`;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+const modalStack = [];
+/** Modal genérico. buttons: [{label, cls, onClick(m)}] */
+function openModal({title, body, size = '', buttons = [], onClose}){
+  const back = document.createElement('div');
+  back.className = 'modal-backdrop';
+  back.innerHTML = `<div class="modal ${size}" role="dialog" aria-modal="true"><div class="modal-head"><h3></h3><button class="icon-btn" aria-label="Cerrar" data-x>✕</button></div><div class="modal-body"></div><div class="modal-foot"></div></div>`;
+  $('#modalRoot').appendChild(back);
+  const m = {
+    el: back, body: back.querySelector('.modal-body'), foot: back.querySelector('.modal-foot'), closed:false,
+    close(){ if(this.closed) return; this.closed = true; back.remove(); const i = modalStack.indexOf(this); if(i >= 0) modalStack.splice(i, 1); onClose && onClose(); },
+    setTitle(t){ back.querySelector('.modal-head h3').textContent = t; },
+    setBody(h){ this.body.innerHTML = h; this.body.scrollTop = 0; },
+    setButtons(btns){
+      this.foot.innerHTML = '';
+      btns.forEach(b => { const bt = document.createElement('button'); bt.className = 'btn ' + (b.cls || 'btn-ghost'); bt.innerHTML = b.label; if(b.id) bt.id = b.id; if(b.disabled) bt.disabled = true; bt.onclick = () => b.onClick(m); this.foot.appendChild(bt); });
+    }
+  };
+  m.setTitle(title); m.setBody(body); m.setButtons(buttons);
+  back.querySelector('[data-x]').onclick = () => m.close();
+  modalStack.push(m);
+  return m;
+}
+/** Confirmación integrada. Devuelve Promise<{ok, value}> */
+function confirmDialog({title, message, confirmLabel = 'Confirmar', danger = false, input = null, typeToConfirm = null}){
+  return new Promise(resolve => {
+    let done = false; const finish = r => { if(!done){ done = true; resolve(r); } };
+    let body = `<div>${message}</div>`;
+    if(input) body += `<div class="field" style="margin-top:12px"><label>${esc(input.label)}${input.required ? ' *' : ''}</label><textarea id="cdInput" rows="3" placeholder="${esc(input.placeholder || '')}">${esc(input.value || '')}</textarea><div class="err" id="cdErr"></div></div>`;
+    if(typeToConfirm) body += `<div class="field" style="margin-top:12px"><label>Para confirmar escribe <b>${esc(typeToConfirm)}</b></label><input id="cdType" autocomplete="off"><div class="err" id="cdErr2"></div></div>`;
+    openModal({title, body, onClose: () => finish({ok:false}), buttons:[
+      {label:'Cancelar', onClick: m => m.close()},
+      {label:confirmLabel, cls: danger ? 'btn-danger' : 'btn-primary', onClick: m => {
+        const v = input ? m.el.querySelector('#cdInput').value.trim() : '';
+        if(input && input.required && !v){ m.el.querySelector('#cdErr').textContent = 'Este campo es obligatorio.'; m.el.querySelector('#cdInput').classList.add('invalid'); return; }
+        if(typeToConfirm && m.el.querySelector('#cdType').value.trim() !== typeToConfirm){ m.el.querySelector('#cdErr2').textContent = `Debes escribir exactamente ${typeToConfirm}.`; return; }
+        finish({ok:true, value:v}); m.close();
+      }}
+    ]});
+    setTimeout(() => { const f = document.querySelector('#cdInput, #cdType'); if(f) f.focus(); }, 50);
+  });
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && modalStack.length) modalStack[modalStack.length - 1].close(); });
+/* Tooltips flotantes: cualquier elemento con data-tip */
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest && e.target.closest('[data-tip]'); const tip = $('#tooltip');
+  if(!t){ tip.style.display = 'none'; return; }
+  tip.textContent = t.getAttribute('data-tip'); tip.style.display = 'block';
+  const r = t.getBoundingClientRect();
+  let x = r.left + r.width / 2 - tip.offsetWidth / 2; x = Math.max(8, Math.min(x, innerWidth - tip.offsetWidth - 8));
+  let y = r.bottom + 8; if(y + tip.offsetHeight > innerHeight - 8) y = r.top - tip.offsetHeight - 8;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+});
+document.addEventListener('scroll', () => { $('#tooltip').style.display = 'none'; }, true);
+function info(text){ return `<i class="info" data-tip="${esc(text)}">i</i>`; }
+function badge(text, cls){ return `<span class="badge b-${cls}">${esc(text)}</span>`; }
+function emptyState(icon, title, text, btn = ''){ return `<div class="empty"><div class="big">${icon}</div><div style="font-weight:700;color:var(--navy)">${title}</div><div>${text}</div>${btn ? `<div style="margin-top:12px">${btn}</div>` : ''}</div>`; }
+function optionList(arr, sel, withEmpty){ return (withEmpty ? `<option value="">${esc(withEmpty)}</option>` : '') + arr.map(v => { const [val, lab] = Array.isArray(v) ? v : [v, v]; return `<option value="${esc(val)}" ${String(val) === String(sel) ? 'selected' : ''}>${esc(lab)}</option>`; }).join(''); }
+/** Selector mes/año reutilizable */
+function periodPicker(prefix, ym){
+  const [y, m] = (isValidYM(ym) ? ym : currentYM()).split('-').map(Number);
+  const cy = new Date().getFullYear(); const years = []; for(let i = Math.min(y, cy) - 4; i <= Math.max(y, cy) + 2; i++) years.push(i);
+  return `<div style="display:flex;gap:6px"><select id="${prefix}M">${MONTHS.map((n, i) => `<option value="${pad(i+1)}" ${i + 1 === m ? 'selected' : ''}>${n}</option>`).join('')}</select><select id="${prefix}Y">${years.map(v => `<option ${v === y ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`;
+}
+function readPicker(prefix, root = document){ return root.querySelector('#' + prefix + 'Y').value + '-' + root.querySelector('#' + prefix + 'M').value; }
+
+/* =========================================================
+   7. ENCABEZADO, PERIODO Y NAVEGACIÓN
+   ========================================================= */
+function renderSaveIndicator(){
+  const el = $('#saveInd'); if(!el || !state) return;
+  const i = CloudSync.info(), ok = i.state === 'ok';
+  const lab = ['offline', 'error'].includes(i.state) ? '⚠ ' + i.short : '☁ ' + i.short;
+  el.innerHTML = `<span class="${ok || ['loading', 'saving'].includes(i.state) ? 'ok' : 'bad'}" style="cursor:pointer" onclick="CloudSync.openPanel()" data-tip="Ver el estado de la sincronización con el equipo">${lab}</span>` +
+    `<span>${i.savedAtText ? 'Última modificación: ' + esc(i.savedAtText) + (i.savedBy ? ' · ' + esc(i.savedBy) : '') : esc(i.text)}</span>`;
+  $('#storageWarn').classList.toggle('hidden', storageOK);
+}
+function renderPeriodSelect(){
+  const [y, m] = ui.period.split('-').map(Number);
+  const years = new Set(); const cy = new Date().getFullYear();
+  for(let i = cy - 3; i <= cy + 2; i++) years.add(i);
+  state.projects.forEach(p => { if(isValidISO(p.pubDate)) years.add(+p.pubDate.slice(0, 4)); });
+  years.add(y);
+  $('#selMonth').innerHTML = MONTHS.map((n, i) => `<option value="${pad(i+1)}" ${i + 1 === m ? 'selected' : ''}>${n}</option>`).join('');
+  $('#selYear').innerHTML = [...years].sort().map(v => `<option ${v === y ? 'selected' : ''}>${v}</option>`).join('');
+  $('#hdrCounterpart').textContent = cfg().counterpart; $('#hdrPayer').textContent = cfg().payer;
+}
+function onPeriodSelect(){ setPeriod($('#selYear').value + '-' + $('#selMonth').value); }
+function setPeriod(ym){ if(!isValidYM(ym)) return; ui.period = ym; renderAll(); }
+function shiftPeriod(n){ setPeriod(addMonths(ui.period, n)); }
+function goTab(id){ ui.tab = id; renderAll(); window.scrollTo({top:0}); }
+function renderTabs(){
+  const pending = computeAlerts(ui.period).filter(a => !a.reviewed).length;
+  $('#tabs').innerHTML = TABS.map(t => `<button class="tab ${ui.tab === t.id ? 'active' : ''}" onclick="goTab('${t.id}')">${t.label}${t.id === 'alerts' ? `<span class="count ${pending ? '' : 'zero'}">${pending}</span>` : ''}${t.id === 'liq' && state.closures[ui.period] ? ' <span class="badge b-green" style="margin-left:4px">Cerrado</span>' : ''}</button>`).join('');
+}
+function renderTopAlert(){
+  const out = rowsFor(ui.period).filter(r => r.si.code === 'OUT');
+  $('#topAlert').innerHTML = out.length
+    ? `<div class="top-alert">⚠ ${out.length} proyecto(s) ya no deben pagarse en ${periodLabel(ui.period)}: superaron sus ${cfg().maxMonths} meses de pago. Acción: <u>Eliminar del cobro</u>.<button class="btn btn-sm btn-ghost" onclick="ui.alertFilter='out';goTab('alerts')">Revisar alertas →</button></div>`
+    : '';
+}
+function renderAll(){
+  renderPeriodSelect(); renderTabs(); renderTopAlert(); renderSaveIndicator();
+  const r = {dashboard:renderDashboard, projects:renderProjects, alerts:renderAlerts, liq:renderLiquidation, history:renderHistory, config:renderConfig}[ui.tab];
+  r();
+}
+
+/* =========================================================
+   8. MÓDULO 1 · DASHBOARD EJECUTIVO
+   ========================================================= */
+function dashGo(filters){ ui.f = Object.assign({q:'', group:'', toctoc:'', billing:'', landing:'', pay:'', alerts:false, archived:false}, filters); goTab('projects'); }
+function renderDashboard(){
+  const P = ui.period, c = cfg(), N = c.maxMonths;
+  const rows = rowsFor(P), st = computeSettlement(P), alerts = computeAlerts(P);
+  const byM = m => rows.filter(r => r.si.code === 'CHARGE' && r.si.m === m).length;
+  const cnt = code => rows.filter(r => r.si.code === code).length;
+  const published = rows.filter(r => isPublishedIn(r, P)).length;
+  const out = cnt('OUT'), clients = cnt('CLIENT'), rb = cnt('RB');
+  const pending = alerts.filter(a => !a.reviewed).length;
+  const closed = state.closures[P];
+  const totalShown = closed ? closed.snapshot.subBilled : st.subBilled;
+  const kpi = (cls, label, value, sub, tip, onclick) => `<div class="kpi ${cls}" onclick="${onclick}"><div class="k-label">${label} ${tip ? info(tip) : ''}</div><div class="k-value">${value}</div><div class="k-sub">${sub || '&nbsp;'}</div></div>`;
+  const mCards = [];
+  for(let m = 1; m <= N; m++) mCards.push(kpi(m === N ? 'yellow' : 'green', m === N ? `Mes ${m} · último` : `Mes ${m}`, byM(m), m === N ? 'Último mes de pago' : 'Cobrable', `Proyectos que en ${periodLabel(P)} cursan su mes ${m} de pago.`, `dashGo({pay:'m${m}'})`));
+  // Gráfico de distribución
+  const palette = ['#12805c', '#3aa57f', '#7cc7a6', '#a3d9c0', '#c3e8d6'];
+  const segs = [];
+  for(let m = 1; m <= N; m++) segs.push({label:`Mes ${m}`, v:byM(m), color: m === N ? '#f2c037' : palette[(m - 1) % palette.length]});
+  segs.push({label:'Fuera de pago', v: out + rb, color:'#c62828'});
+  segs.push({label:`Cliente ${c.counterpart}`, v: clients, color:'#1565c0'});
+  const tot = segs.reduce((a, s) => a + s.v, 0);
+  let acc = 0;
+  const grad = tot ? segs.filter(s => s.v).map(s => { const a0 = acc / tot * 360; acc += s.v; return `${s.color} ${a0}deg ${acc / tot * 360}deg`; }).join(',') : '#eef0f3 0deg 360deg';
+  const maxV = Math.max(1, ...segs.map(s => s.v));
+  const bars = segs.map(s => `<div class="bar-row"><div><span class="dot" style="background:${s.color}"></span>${esc(s.label)}</div><div class="bar-track"><div class="bar-fill" style="width:${s.v / maxV * 100}%;background:${s.color}"></div></div><div class="right"><b>${s.v}</b></div></div>`).join('');
+  const liqRows = st.items.map(i => `<tr><td>${esc(i.name)}</td><td class="right">${fmtNum(i.autoQty)}</td><td class="right">${fmtUF(i.autoTotal)}</td><td class="right">${fmtUF(i.billedTotal)}</td></tr>`).join('');
+  const topAlerts = alerts.filter(a => !a.reviewed).slice(0, 6);
+  $('#main').innerHTML = `
+  <div class="section-head"><div><h2>Dashboard ejecutivo · ${periodLabel(P)}</h2><div class="muted">Resumen de pagos de ${esc(c.payer)} a ${esc(c.counterpart)} por proyectos publicados en la landing.</div></div>
+    <div class="toolbar">${closed ? badge('Mes cerrado el ' + fmtStamp(closed.closedAt), 'green') : badge('Mes abierto', 'orange')}<button class="btn btn-primary" onclick="openProjectForm()">＋ Nuevo proyecto</button></div></div>
+  <div class="kpis">
+    ${kpi('main', 'Total estimado a pagar', fmtUF(totalShown), closed ? 'Total facturado según cierre del mes' : `Cálculo automático: ${fmtUF(st.subAuto)} · sin IVA`, 'Suma de banners, leads e incorporación del periodo. Si el mes está cerrado, se muestra el valor del cierre.', "goTab('liq')")}
+    ${kpi('', 'Proyectos publicados', published, 'Activos en la landing al periodo', 'Proyectos con fecha de publicación igual o anterior al periodo y que siguen en la landing (incluye clientes y fuera de pago).', 'dashGo({})')}
+    ${kpi('orange', 'Cobrables del mes', st.chargeable.length, `Base para leads: ${fmtUF(st.chargeable.length * c.leadUF)}`, `"Publicado, No cliente" dentro de sus ${N} meses de pago.`, "dashGo({billing:'cobrable_all'})")}
+    ${mCards.join('')}
+    ${kpi('red', 'Eliminar del cobro', out, out ? 'Llegaron al mes ' + (N + 1) + ' o más' : 'Sin pendientes', `Proyectos que superaron los ${N} meses y aún no se marcan como eliminados del cobro.`, "dashGo({billing:'eliminar'})")}
+    ${kpi('blue', `Clientes ${esc(c.counterpart)}`, clients, `No se pagan por ${esc(c.payer)}`, 'Proyectos "Publicado, Cliente": nunca se suman al pago.', "dashGo({billing:'cliente'})")}
+    ${kpi('', 'Incorporados en el mes', st.incorporatedAll.length, `${st.incorporated.length} no clientes · ${fmtUF(st.items[2].autoTotal)}`, 'Proyectos cuya fecha de publicación corresponde al periodo seleccionado.', "dashGo({pay:'m1'})")}
+    ${kpi(pending ? 'red' : 'green', 'Alertas pendientes', pending, `${alerts.length} alertas en total`, 'Alertas no marcadas como revisadas en el periodo.', "goTab('alerts')")}
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><h3>Distribución de proyectos · ${periodLabel(P)}</h3>${info('Distribución de los proyectos según su mes de pago en el periodo. "Fuera de pago" incluye proyectos en mes ' + (N + 1) + ' o más y proyectos eliminados del cobro.')}</div>
+      <div class="chart-wrap"><div class="donut" style="background:conic-gradient(${grad})"><div class="donut-center"><b>${tot}</b><span>proyectos</span></div></div><div class="bars">${bars}</div></div></div>
+    <div class="card"><div class="card-title"><h3>Liquidación estimada</h3><button class="btn btn-sm btn-ghost" onclick="goTab('liq')">Ver detalle →</button></div>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Ítem</th><th class="right">Cant. auto</th><th class="right">Total auto</th><th class="right">Facturado</th></tr></thead><tbody>${liqRows}</tbody>
+      <tfoot><tr><td>Subtotal</td><td></td><td class="right">${fmtUF(st.subAuto)}</td><td class="right">${fmtUF(st.subBilled)}</td></tr></tfoot></table></div>
+      <div style="margin-top:10px">Estado general: ${badge(st.general, st.general === 'Conforme' ? 'green' : st.general === 'Rechazado' ? 'red' : 'yellow')} · Diferencia: ${fmtDiff(st.diff)}</div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="card-title"><h3>Alertas del mes</h3><button class="btn btn-sm btn-ghost" onclick="goTab('alerts')">Ver todas →</button></div>
+    ${topAlerts.length ? `<div class="table-wrap"><table class="data"><thead><tr><th>Proyecto</th><th>Inmobiliaria</th><th>Motivo</th><th>Acción recomendada</th></tr></thead><tbody>${topAlerts.map(a => `<tr class="r-${a.severity === 'critical' ? 'red' : 'yellow'}"><td class="name-cell">${esc(a.p.name)}</td><td>${esc(a.p.group)}</td><td>${a.reason}</td><td>${a.action}</td></tr>`).join('')}</tbody></table></div>` : emptyState('✅', 'Sin alertas pendientes', 'Todas las alertas del periodo están revisadas.')}
+  </div>
+  <div class="share-note" style="margin-top:16px"><span>ⓘ</span><div><b>Información compartida.</b> ${SHARE_NOTE}</div></div>`;
+}
+
+/* =========================================================
+   9. MÓDULO 2 · CONTROL DE PROYECTOS
+   ========================================================= */
+const BILLING_FILTERS = [
+  ['cobrable_all', 'Cobrable (todos)'], ['cobrable', 'Cobrable (no último mes)'], ['ultimo', 'Cobrable · último mes'],
+  ['eliminar', 'Eliminar del cobro'], ['cliente', 'No se cobra (cliente)'], ['eliminado', 'Eliminado del cobro'],
+  ['landing', 'Fuera de landing'], ['pendiente', 'Pendiente'], ['noinicia', 'Aún no inicia'], ['fecha', 'Revisar fecha'], ['archivado', 'Archivado']
+];
+function billingKey(si){
+  const N = cfg().maxMonths;
+  return {CHARGE: si.m === N ? 'ultimo' : 'cobrable', OUT:'eliminar', CLIENT:'cliente', RB:'eliminado', RL:'landing', PEND:'pendiente', NS:'noinicia', INV:'fecha', ARC:'archivado'}[si.code];
+}
+function projectRowsFiltered(){
+  const P = ui.period, f = ui.f;
+  const alertIds = new Set(computeAlerts(P).filter(a => !a.reviewed).map(a => a.p.id));
+  const q = norm(f.q);
+  let rows = rowsFor(P).filter(r => {
+    const p = r.p, bk = billingKey(r.si);
+    if(p.archived && !f.archived && f.billing !== 'archivado') return false;
+    if(q && !norm([p.name, p.group, p.toctoc, p.notes, p.landing, fmtCL(p.pubDate), r.si.payLabel, r.si.billingLabel].join(' ')).includes(q)) return false;
+    if(f.group && norm(p.group) !== norm(f.group)) return false;
+    if(f.toctoc && p.toctoc !== f.toctoc) return false;
+    if(f.landing && p.landing !== f.landing) return false;
+    if(f.billing){ if(f.billing === 'cobrable_all'){ if(r.si.code !== 'CHARGE') return false; } else if(bk !== f.billing) return false; }
+    if(f.pay){
+      if(f.pay === 'fuera'){ if(!['OUT','RB'].includes(r.si.code)) return false; }
+      else if(!(r.si.code === 'CHARGE' && 'm' + r.si.m === f.pay)) return false;
+    }
+    if(f.alerts && !alertIds.has(p.id)) return false;
+    return true;
+  });
+  const {key, dir} = ui.sort, k = dir === 'asc' ? 1 : -1;
+  const val = r => ({name:norm(r.p.name), group:norm(r.p.group), toctoc:r.p.toctoc, pubDate:r.p.pubDate || '0000', noPay:r.p.pubDate || '0000', pay:(r.si.m || 0) + (r.si.code === 'CHARGE' ? 0 : 100), billing:r.si.billingLabel, landing:r.p.landing, notes:norm(r.p.notes)}[key] ?? '');
+  rows.sort((a, b) => { const va = val(a), vb = val(b); return (typeof va === 'number' ? va - vb : String(va).localeCompare(String(vb), 'es')) * k; });
+  return {rows, alertIds};
+}
+function sortBy(key){ ui.sort = {key, dir: ui.sort.key === key && ui.sort.dir === 'asc' ? 'desc' : 'asc'}; renderProjTable(); }
+function setF(k, v){ ui.f[k] = v; renderProjTable(); }
+function clearFilters(){ ui.f = {q:'', group:'', toctoc:'', billing:'', landing:'', pay:'', alerts:false, archived:false}; renderProjects(); }
+function renderProjects(){
+  const c = cfg(), N = c.maxMonths, f = ui.f;
+  const groups = [...new Set(state.projects.map(p => p.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  const payOpts = []; for(let m = 1; m <= N; m++) payOpts.push(['m' + m, `Mes ${m} de ${N}`]); payOpts.push(['fuera', 'Fuera de pago']);
+  $('#main').innerHTML = `
+  <div class="section-head"><div><h2>Control de proyectos</h2><div class="muted">Mes de control: <b>${periodLabel(ui.period)}</b> (cámbialo en el selector superior). Mes 1 = mes de publicación.</div></div>
+    <div class="toolbar"><button class="btn btn-primary" onclick="openProjectForm()">＋ Nuevo proyecto</button><button class="btn btn-ghost" onclick="openImportCSV()">⇪ Importar CSV</button><button class="btn btn-ghost" onclick="exportProjectsCSV()">⇩ Exportar CSV</button></div></div>
+  <div class="card">
+    <div class="filters">
+      <div class="field" style="grid-column:span 2"><label>Búsqueda libre</label><input id="fq" placeholder="Buscar por proyecto, inmobiliaria, detalle, fecha…" value="${esc(f.q)}" oninput="setF('q',this.value)"></div>
+      <div class="field"><label>Mes de control</label>${periodPicker('fper', ui.period).replace('<div style="display:flex;gap:6px">', '<div style="display:flex;gap:6px" onchange="setPeriod(readPicker(\'fper\'))">')}</div>
+      <div class="field"><label>Inmobiliaria o grupo</label><select onchange="setF('group',this.value)">${optionList(groups, f.group, 'Todas')}</select></div>
+      <div class="field"><label>Estado TOCTOC</label><select onchange="setF('toctoc',this.value)">${optionList(TOCTOC_STATES, f.toctoc, 'Todos')}</select></div>
+      <div class="field"><label>Estado de cobro</label><select onchange="setF('billing',this.value)">${optionList(BILLING_FILTERS, f.billing, 'Todos')}</select></div>
+      <div class="field"><label>Estado en landing</label><select onchange="setF('landing',this.value)">${optionList(LANDING_STATES, f.landing, 'Todos')}</select></div>
+      <div class="field"><label>Mes de pago</label><select onchange="setF('pay',this.value)">${optionList(payOpts, f.pay, 'Todos')}</select></div>
+      <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" ${f.alerts ? 'checked' : ''} onchange="setF('alerts',this.checked)"> Solo con alertas pendientes</label></div>
+      <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" ${f.archived ? 'checked' : ''} onchange="setF('archived',this.checked)"> Incluir archivados</label></div>
+      <div class="field"><label>&nbsp;</label><button class="btn btn-ghost" onclick="clearFilters()">✕ Limpiar filtros</button></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px" class="small">
+      ${badge('● Mes 1–' + (N - 1) + ': cobrable', 'green')} ${badge('● Mes ' + N + ': último mes', 'yellow')} ${badge('● Mes ' + (N + 1) + '+: eliminar del cobro', 'red')} ${badge('● Cliente ' + c.counterpart + ': no paga ' + c.payer, 'blue')} ${badge('● Eliminado / inactivo', 'gray')}
+    </div>
+    <div id="projCounter" class="counter"></div>
+    <div id="projTable"></div>
+  </div>`;
+  renderProjTable();
+}
+function renderProjTable(){
+  const {rows, alertIds} = projectRowsFiltered(), N = cfg().maxMonths;
+  const totalActive = state.projects.filter(p => !p.archived).length;
+  $('#projCounter').innerHTML = `Mostrando <b>${rows.length}</b> de <b>${totalActive}</b> proyectos activos${state.projects.length - totalActive ? ` (${state.projects.length - totalActive} archivados)` : ''}.`;
+  if(!state.projects.length){ $('#projTable').innerHTML = emptyState('🏢', 'Aún no hay proyectos', 'Crea un proyecto o importa un CSV para comenzar.', '<button class="btn btn-primary" onclick="openProjectForm()">＋ Nuevo proyecto</button>'); return; }
+  if(!rows.length){ $('#projTable').innerHTML = emptyState('🔍', 'Sin resultados', 'Ningún proyecto coincide con los filtros aplicados.', '<button class="btn btn-ghost" onclick="clearFilters()">Limpiar filtros</button>'); return; }
+  const th = (key, label, tip) => `<th class="${key ? 'sortable' : ''}" ${key ? `onclick="sortBy('${key}')"` : ''} ${tip ? `data-tip="${esc(tip)}"` : ''}>${label}${key && ui.sort.key === key ? `<span class="arrow">${ui.sort.dir === 'asc' ? '▲' : '▼'}</span>` : ''}</th>`;
+  const monthHeads = Array.from({length:N}, (_, i) => th('', `Mes ${i + 1}`, `Periodo ${i + 1} de pago (el mes de publicación cuenta como mes 1).`)).join('');
+  const alertsAll = computeAlerts(ui.period);
+  const body = rows.map(r => {
+    const p = r.p, si = r.si, months = payMonths(p);
+    const al = alertsAll.filter(a => a.p.id === p.id && !a.reviewed);
+    const alertIcon = al.length ? ` <span class="badge b-red" data-tip="${esc(al.map(a => a.reason.replace(/<[^>]+>/g, '')).join(' · '))}">⚠ ${al.length}</span>` : '';
+    const monthCells = Array.from({length:N}, (_, i) => `<td class="nowrap">${months[i] ? (months[i] === ui.period ? `<b style="color:var(--orange)">${periodShort(months[i])}</b>` : periodShort(months[i])) : '—'}</td>`).join('');
+    const landingTxt = p.landing === 'Eliminado de landing' ? badge('Eliminado de landing', 'gray') + (p.landingRemoved ? `<div class="small muted">desde ${periodShort(p.landingRemoved.period)}</div>` : '') : badge(p.landing, p.landing === 'Publicado' ? 'navy' : 'orange');
+    const removedInfo = p.billingRemoved ? `<div class="small muted">desde ${periodShort(p.billingRemoved.period)} (${fmtCL(p.billingRemoved.date)})</div>` : '';
+    const acts = [
+      `<button class="icon-btn" data-tip="Editar" onclick="openProjectForm('${p.id}','edit')">✎</button>`,
+      `<button class="icon-btn" data-tip="Duplicar registro" onclick="openProjectForm('${p.id}','dup')">⧉</button>`,
+      p.toctoc === 'Eliminado de pago'
+        ? `<button class="icon-btn" data-tip="Restaurar al cobro" onclick="restoreBilling('${p.id}')">↺</button>`
+        : (!p.archived ? `<button class="icon-btn warn" data-tip="Marcar como eliminado del cobro (no borra el registro)" onclick="askRemoveBilling(['${p.id}'])">⊘</button>` : ''),
+      p.archived
+        ? `<button class="icon-btn" data-tip="Desarchivar" onclick="toggleArchive('${p.id}')">⇧</button><button class="icon-btn danger" data-tip="Eliminar definitivamente (requiere doble confirmación)" onclick="deleteProject('${p.id}')">🗑</button>`
+        : `<button class="icon-btn" data-tip="Archivar (se conserva en historial)" onclick="toggleArchive('${p.id}')">🗄</button>`
+    ].join('');
+    return `<tr class="r-${si.cls}">
+      <td class="name-cell">${esc(p.name)}${alertIcon}${p.demo ? ' <span class="badge b-gray" data-tip="Registro de demostración">demo</span>' : ''}</td>
+      <td>${esc(p.group) || '—'}</td>
+      <td>${badge(p.toctoc, p.toctoc === 'Publicado, Cliente' ? 'blue' : p.toctoc === 'Publicado, No cliente' ? 'navy' : 'gray')}</td>
+      <td class="nowrap">${p.pubDate ? (isValidISO(p.pubDate) ? fmtCL(p.pubDate) : badge('Inválida', 'red')) : badge('Incompleta', 'red')}</td>
+      ${monthCells}
+      <td class="nowrap">${fmtCL(noPayDate(p))}</td>
+      <td>${badge(si.payLabel, si.cls)}</td>
+      <td>${badge(si.billingLabel, si.cls)}${removedInfo}</td>
+      <td>${landingTxt}</td>
+      <td class="notes-cell">${esc(p.notes)}</td>
+      <td><div class="actions">${acts}</div></td></tr>`;
+  }).join('');
+  $('#projTable').innerHTML = `<div class="table-wrap tall"><table class="data"><thead><tr>
+    ${th('name', 'Proyecto')}${th('group', 'Inmobiliaria / grupo')}${th('toctoc', 'Estado TOCTOC', 'Estado comercial del proyecto con TOCTOC.')}${th('pubDate', 'Fecha publicación', 'Formato DD/MM/AAAA.')}
+    ${monthHeads}${th('noPay', 'No pagar desde', 'Inicio del mes ' + (N + 1) + ': desde esta fecha no corresponde pagar.')}${th('pay', 'Mes de pago', 'Mes de pago en el periodo seleccionado.')}
+    ${th('billing', 'Estado de cobro')}${th('landing', 'Estado en landing')}${th('notes', 'Detalle / observación')}${th('', 'Acciones')}
+  </tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+/* ---------- Acciones sobre proyectos ---------- */
+/** Elimina del cobro (no borra el registro): guarda fecha de acción y periodo */
+function removeFromBilling(ids, comment){
+  let n = 0;
+  ids.forEach(id => {
+    const p = findP(id); if(!p || p.toctoc === 'Eliminado de pago') return;
+    p.billingRemoved = {date:todayISO(), period:ui.period, comment:comment || '', prevStatus:p.toctoc === 'Eliminado de landing' ? (p.landingRemoved && p.landingRemoved.prevStatus) || 'Publicado, No cliente' : p.toctoc, at:nowStamp()};
+    p.toctoc = 'Eliminado de pago'; p.updatedAt = nowStamp(); n++;
+    addLog('Eliminado del cobro', `${p.name} (${p.group}) · periodo ${periodLabel(ui.period)}${comment ? ' · ' + comment : ''}`);
+  });
+  if(n){ save(); toast(`${n} proyecto(s) marcados como eliminados del cobro. Se conservan en el historial.`, 'success'); }
+  renderAll();
+}
+function askRemoveBilling(ids, presetComment){
+  const ps = ids.map(findP).filter(Boolean);
+  const anyChargeable = ps.some(p => statusInfo(p, ui.period).code === 'CHARGE');
+  confirmDialog({
+    title:'Eliminar del cobro',
+    message:`<p>Se marcará${ps.length > 1 ? 'n' : ''} <b>${ps.length}</b> proyecto(s) como <b>eliminado del cobro</b> desde <b>${periodLabel(ui.period)}</b>:</p><ul>${ps.slice(0, 12).map(p => `<li>${esc(p.name)} · ${esc(p.group)}</li>`).join('')}${ps.length > 12 ? '<li>…</li>' : ''}</ul>
+      <div class="notice n-info"><span class="ic">ℹ</span><div>El registro <b>no se borra</b>: queda fuera del cálculo desde este periodo y se conserva en el historial. Esto es distinto de "eliminar de la landing".</div></div>
+      ${anyChargeable ? '<div class="notice n-warn"><span class="ic">⚠</span><div>Al menos un proyecto aún está dentro de sus meses de pago. Si lo eliminas, dejará de cobrarse desde este periodo.</div></div>' : ''}`,
+    confirmLabel:'Eliminar del cobro', danger:true, input:{label:'Comentario (opcional)', value:presetComment || ''}
+  }).then(r => { if(r.ok) removeFromBilling(ids, r.value); });
+}
+function restoreBilling(id){
+  const p = findP(id); if(!p) return;
+  confirmDialog({title:'Restaurar al cobro', message:`<p>¿Restaurar <b>${esc(p.name)}</b> a su estado anterior (<b>${esc(p.billingRemoved ? p.billingRemoved.prevStatus : 'Publicado, No cliente')}</b>)? La eliminación anterior quedará registrada en el historial.</p>`, input:{label:'Motivo', required:true}, confirmLabel:'Restaurar'})
+  .then(r => { if(!r.ok) return;
+    const prev = p.billingRemoved ? p.billingRemoved.prevStatus : 'Publicado, No cliente';
+    if(p.billingRemoved) p.billingHistory.push(Object.assign({}, p.billingRemoved, {restoredAt:nowStamp(), restoreReason:r.value}));
+    p.billingRemoved = null; p.toctoc = prev || 'Publicado, No cliente'; p.updatedAt = nowStamp();
+    addLog('Restaurado al cobro', `${p.name} · ${r.value}`); save(); toast('Proyecto restaurado al cobro.', 'success'); renderAll(); });
+}
+function toggleArchive(id){
+  const p = findP(id); if(!p) return;
+  if(p.archived){ p.archived = false; p.updatedAt = nowStamp(); addLog('Desarchivado', p.name); save(); toast('Proyecto desarchivado.', 'success'); renderAll(); return; }
+  confirmDialog({title:'Archivar proyecto', message:`<p>¿Archivar <b>${esc(p.name)}</b>? Quedará fuera de cálculos y alertas, pero se conserva y puedes verlo con el filtro "Incluir archivados".</p>`, confirmLabel:'Archivar'})
+  .then(r => { if(!r.ok) return; p.archived = true; p.archivedAt = nowStamp(); addLog('Archivado', p.name); save(); toast('Proyecto archivado.', 'success'); renderAll(); });
+}
+async function deleteProject(id){
+  const p = findP(id); if(!p) return;
+  const r1 = await confirmDialog({title:'Eliminar definitivamente', message:`<div class="notice n-error"><span class="ic">⚠</span><div>Vas a borrar físicamente <b>${esc(p.name)}</b>. Esta acción no se puede deshacer. Los cierres mensuales ya realizados no cambian.</div></div>`, confirmLabel:'Continuar', danger:true});
+  if(!r1.ok) return;
+  const r2 = await confirmDialog({title:'Confirmación final', message:'<p>Confirma la eliminación definitiva del registro.</p>', confirmLabel:'Eliminar definitivamente', danger:true, typeToConfirm:'ELIMINAR'});
+  if(!r2.ok) return;
+  state.projects = state.projects.filter(x => x.id !== id);
+  addLog('Eliminación definitiva', `${p.name} (${p.group})`); save(); toast('Registro eliminado definitivamente.', 'success'); renderAll();
+}
+
+/* =========================================================
+   10. MÓDULO 6 · FORMULARIO DE PROYECTOS
+   ========================================================= */
+let formCtx = null;
+function openProjectForm(id, mode = 'new'){
+  const src = id ? findP(id) : null;
+  const p = src ? clone(src) : {name:'', group:'', toctoc:'Publicado, No cliente', pubDate:'', landing:'Publicado', notes:''};
+  if(mode === 'dup'){ p.name = p.name + ' (copia)'; p.billingRemoved = null; p.landingRemoved = null; if(p.toctoc === 'Eliminado de pago') p.toctoc = 'Publicado, No cliente'; }
+  formCtx = {id: mode === 'edit' ? id : null, mode, data:null};
+  const groups = [...new Set(state.projects.map(x => x.group).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  const title = mode === 'edit' ? 'Editar proyecto' : mode === 'dup' ? 'Duplicar proyecto' : 'Nuevo proyecto';
+  const landPeriod = p.landingRemoved ? p.landingRemoved.period : ui.period;
+  const body = `<div class="form-grid">
+    <div class="field full"><label>Nombre o identificación del proyecto *</label><input id="fName" value="${esc(p.name)}" oninput="formPreview()" maxlength="160"><div class="err" id="eName"></div></div>
+    <div class="field"><label>Inmobiliaria o grupo *</label><input id="fGroup" list="dlGroups" value="${esc(p.group)}" oninput="formPreview()" maxlength="100"><datalist id="dlGroups">${groups.map(g => `<option value="${esc(g)}">`).join('')}</datalist><div class="err" id="eGroup"></div></div>
+    <div class="field"><label>Estado TOCTOC * ${info('Publicado, No cliente: se paga hasta ' + cfg().maxMonths + ' meses. Publicado, Cliente: nunca se cobra a ' + cfg().payer + '.')}</label><select id="fToctoc" onchange="formSync('toctoc')">${optionList(TOCTOC_STATES, p.toctoc)}</select></div>
+    <div class="field"><label>Fecha de publicación (DD/MM/AAAA) ${info('Se interpreta siempre como día/mes/año. Ej.: 15/07/2026 = 15 de julio de 2026.')}</label><input id="fDate" placeholder="DD/MM/AAAA" value="${esc(isValidISO(p.pubDate) ? fmtCL(p.pubDate) : (p.pubDate || ''))}" oninput="formPreview()" onblur="autoFormatDate(this)" maxlength="10" inputmode="numeric"><div class="err" id="eDate"></div></div>
+    <div class="field"><label>Estado en landing ${info('"Eliminado de landing" significa que el proyecto ya no se muestra. Es distinto de "Eliminado del cobro".')}</label><select id="fLanding" onchange="formSync('landing')">${optionList(LANDING_STATES, p.landing)}</select></div>
+    <div class="field ${p.landing === 'Eliminado de landing' || p.toctoc === 'Eliminado de landing' ? '' : 'hidden'}" id="wrapLand"><label>Periodo desde el que salió de la landing</label>${periodPicker('fLand', landPeriod)}</div>
+    <div class="field full"><label>Observaciones / detalle</label><textarea id="fNotes" rows="2" maxlength="500">${esc(p.notes)}</textarea></div>
+  </div>
+  <div class="preview-box" id="fPreview"></div>`;
+  openModal({title, body, size:'md', buttons:[
+    {label:'Cancelar', onClick: m => m.close()},
+    {label:'Revisar y guardar →', cls:'btn-primary', onClick: m => formReview(m)}
+  ]});
+  formPreview();
+  setTimeout(() => $('#fName') && $('#fName').focus(), 50);
+}
+function autoFormatDate(el){ const v = el.value.trim(); if(/^\d{8}$/.test(v)) el.value = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`; formPreview(); }
+function formSync(src){
+  const t = $('#fToctoc'), l = $('#fLanding');
+  if(src === 'toctoc' && t.value === 'Eliminado de landing') l.value = 'Eliminado de landing';
+  if(src === 'toctoc' && t.value === 'Pendiente' && l.value === 'Publicado') l.value = 'Pendiente de publicación';
+  if(src === 'landing' && l.value !== 'Eliminado de landing' && t.value === 'Eliminado de landing') t.value = 'Publicado, No cliente';
+  $('#wrapLand').classList.toggle('hidden', !(l.value === 'Eliminado de landing' || t.value === 'Eliminado de landing'));
+  formPreview();
+}
+function collectForm(){
+  const landOut = $('#fLanding').value === 'Eliminado de landing' || $('#fToctoc').value === 'Eliminado de landing';
+  return {name:$('#fName').value.trim(), group:$('#fGroup').value.trim(), toctoc:$('#fToctoc').value, dateRaw:$('#fDate').value.trim(),
+    landing: landOut ? 'Eliminado de landing' : $('#fLanding').value, landPeriod: landOut ? readPicker('fLand') : null, notes:$('#fNotes').value.trim()};
+}
+function validateForm(d){
+  const errors = {}, warnings = [];
+  if(!d.name) errors.name = 'El nombre del proyecto es obligatorio.';
+  if(!d.group) errors.group = 'La inmobiliaria o grupo es obligatoria (usa "SIN GRUPO" si no aplica).';
+  let iso = '';
+  if(d.dateRaw){ iso = parseCLStrict(d.dateRaw); if(!iso) errors.date = 'Fecha inválida. Usa DD/MM/AAAA, por ejemplo 15/07/2026.'; }
+  else if(d.toctoc !== 'Pendiente') warnings.push('No tiene fecha de publicación: quedará con alerta de "fecha incompleta" y bloqueará el cierre de mes.');
+  const others = state.projects.filter(x => x.id !== formCtx.id);
+  const sameNG = others.filter(x => norm(x.name) === norm(d.name) && norm(x.group) === norm(d.group));
+  const sameN = others.filter(x => norm(x.name) === norm(d.name) && norm(x.group) !== norm(d.group));
+  if(d.name && sameNG.length) warnings.push(`<b>Posible duplicado:</b> ya existe${sameNG.length > 1 ? 'n' : ''} ${sameNG.length} proyecto(s) con el mismo nombre e inmobiliaria (${sameNG.map(x => fmtCL(x.pubDate)).join(', ')}).`);
+  if(d.name && sameN.length) warnings.push(`Ya existe un proyecto con el mismo nombre en otra inmobiliaria: ${sameN.map(x => esc(x.group)).join(', ')}.`);
+  if(iso && iso > addMonths(currentYM(), 12) + '-01') warnings.push('La fecha de publicación está a más de 12 meses en el futuro.');
+  return {errors, warnings, iso};
+}
+function previewOf(d, iso){
+  const tmp = {name:d.name, group:d.group, toctoc:d.toctoc, pubDate:iso, landing:d.landing, archived:false,
+    landingRemoved: d.landing === 'Eliminado de landing' ? {period:d.landPeriod, prevStatus: d.toctoc === 'Eliminado de landing' ? 'Publicado, No cliente' : d.toctoc} : null,
+    billingRemoved: d.toctoc === 'Eliminado de pago' ? (formCtx.id && findP(formCtx.id).billingRemoved) || {period:ui.period, prevStatus:'Publicado, No cliente'} : null};
+  return {tmp, si:statusInfo(tmp, ui.period), months:payMonths(tmp), noPay:noPayDate(tmp)};
+}
+function formPreview(){
+  if(!$('#fPreview')) return;
+  const d = collectForm(), v = validateForm(d);
+  $('#eName').textContent = ''; $('#eGroup').textContent = ''; $('#eDate').textContent = d.dateRaw && v.errors.date ? v.errors.date : '';
+  $('#fDate').classList.toggle('invalid', !!(d.dateRaw && v.errors.date));
+  const pv = previewOf(d, v.iso);
+  $('#fPreview').innerHTML = `<div class="row"><b style="color:var(--navy)">Cálculo automático</b> <span class="muted small">(periodo ${periodLabel(ui.period)})</span></div>
+    <div class="row">${pv.months.length ? pv.months.map((m, i) => badge(`Mes ${i + 1}: ${periodShort(m)}`, i + 1 === cfg().maxMonths ? 'yellow' : 'green')).join(' ') : '<span class="muted">Ingresa una fecha válida para calcular los meses de pago.</span>'}</div>
+    <div class="row">No corresponde pagar desde: <b>${fmtCL(pv.noPay)}</b></div>
+    <div class="row">Mes de pago: ${badge(pv.si.payLabel, pv.si.cls)} Estado de cobro: ${badge(pv.si.billingLabel, pv.si.cls)}</div>
+    ${v.warnings.map(w => `<div class="notice n-warn" style="margin:6px 0 0"><span class="ic">⚠</span><div>${w}</div></div>`).join('')}`;
+}
+function formReview(m){
+  const d = collectForm(), v = validateForm(d);
+  $('#eName').textContent = v.errors.name || ''; $('#eGroup').textContent = v.errors.group || ''; $('#eDate').textContent = v.errors.date || '';
+  $('#fName').classList.toggle('invalid', !!v.errors.name); $('#fGroup').classList.toggle('invalid', !!v.errors.group); $('#fDate').classList.toggle('invalid', !!v.errors.date);
+  if(Object.keys(v.errors).length){ toast('Revisa los campos marcados en rojo.', 'error'); return; }
+  formCtx.data = d; formCtx.iso = v.iso;
+  const pv = previewOf(d, v.iso);
+  const html = `<p>Revisa la información antes de guardar:</p>
+    <dl class="summary-list">
+      <dt>Proyecto</dt><dd><b>${esc(d.name)}</b></dd><dt>Inmobiliaria / grupo</dt><dd>${esc(d.group)}</dd>
+      <dt>Estado TOCTOC</dt><dd>${esc(d.toctoc)}</dd><dt>Fecha de publicación</dt><dd>${v.iso ? fmtCL(v.iso) : '<span class="diff-pos">Sin fecha</span>'}</dd>
+      <dt>Meses de pago</dt><dd>${pv.months.map(periodShort).join(' · ') || '—'}</dd><dt>No pagar desde</dt><dd>${fmtCL(pv.noPay)}</dd>
+      <dt>Estado en landing</dt><dd>${esc(d.landing)}${d.landPeriod ? ' desde ' + periodLabel(d.landPeriod) : ''}</dd>
+      <dt>Estado en ${periodLabel(ui.period)}</dt><dd>${badge(pv.si.payLabel, pv.si.cls)} ${badge(pv.si.billingLabel, pv.si.cls)}</dd>
+      <dt>Observaciones</dt><dd>${esc(d.notes) || '—'}</dd>
+    </dl>
+    ${v.warnings.map(w => `<div class="notice n-warn"><span class="ic">⚠</span><div>${w}</div></div>`).join('')}`;
+  const formHTML = m.body.innerHTML; const vals = {name:$('#fName').value, group:$('#fGroup').value, toctoc:$('#fToctoc').value, date:$('#fDate').value, landing:$('#fLanding').value, notes:$('#fNotes').value, lm:$('#fLandM') ? $('#fLandM').value : null, ly:$('#fLandY') ? $('#fLandY').value : null};
+  m.setBody(html);
+  m.setButtons([
+    {label:'← Volver a editar', onClick: mm => { mm.setBody(formHTML); $('#fName').value = vals.name; $('#fGroup').value = vals.group; $('#fToctoc').value = vals.toctoc; $('#fDate').value = vals.date; $('#fLanding').value = vals.landing; $('#fNotes').value = vals.notes; if(vals.lm){ $('#fLandM').value = vals.lm; $('#fLandY').value = vals.ly; } formPreview();
+      mm.setButtons([{label:'Cancelar', onClick: x => x.close()}, {label:'Revisar y guardar →', cls:'btn-primary', onClick: x => formReview(x)}]); }},
+    {label:'✔ Confirmar y guardar', cls:'btn-primary', onClick: mm => { saveProject(); mm.close(); }}
+  ]);
+}
+function saveProject(){
+  const d = formCtx.data, iso = formCtx.iso, isNew = !formCtx.id;
+  const p = isNew ? {id:uid(), createdAt:nowStamp(), demo:false, archived:false, billingRemoved:null, landingRemoved:null, billingHistory:[], noPayImported:''} : findP(formCtx.id);
+  const prevToctoc = isNew ? null : p.toctoc;
+  // Transiciones de "eliminado del cobro"
+  if(d.toctoc === 'Eliminado de pago' && prevToctoc !== 'Eliminado de pago')
+    p.billingRemoved = {date:todayISO(), period:ui.period, comment:'Cambio de estado desde el formulario', prevStatus: prevToctoc && prevToctoc !== 'Eliminado de landing' ? prevToctoc : 'Publicado, No cliente', at:nowStamp()};
+  if(prevToctoc === 'Eliminado de pago' && d.toctoc !== 'Eliminado de pago' && p.billingRemoved){
+    p.billingHistory.push(Object.assign({}, p.billingRemoved, {restoredAt:nowStamp(), restoreReason:'Cambio de estado desde el formulario'})); p.billingRemoved = null; }
+  // Transiciones de "eliminado de landing"
+  if(d.landing === 'Eliminado de landing'){
+    const prevForLanding = d.toctoc === 'Eliminado de landing'
+      ? (prevToctoc && prevToctoc !== 'Eliminado de landing' && prevToctoc !== 'Eliminado de pago' ? prevToctoc : (p.landingRemoved && p.landingRemoved.prevStatus) || 'Publicado, No cliente')
+      : d.toctoc;
+    p.landingRemoved = {period:d.landPeriod, date:(p.landingRemoved && p.landingRemoved.date) || todayISO(), prevStatus:prevForLanding};
+  } else p.landingRemoved = null;
+  if(iso !== p.pubDate && p.noPayImported && iso) p.noPayImported = ''; // si se corrige la fecha, se descarta la fecha importada
+  Object.assign(p, {name:d.name, group:d.group, toctoc:d.toctoc, pubDate:iso, landing:d.landing, notes:d.notes, updatedAt:nowStamp()});
+  if(isNew) state.projects.push(p);
+  addLog(isNew ? (formCtx.mode === 'dup' ? 'Proyecto duplicado' : 'Proyecto creado') : 'Proyecto editado', `${p.name} (${p.group})`);
+  save(); toast(isNew ? 'Proyecto guardado correctamente.' : 'Cambios guardados.', 'success'); renderAll();
+}
+
+/* =========================================================
+   11. MÓDULO 3 · ALERTAS AUTOMÁTICAS
+   ========================================================= */
+const ALERT_TYPES = {
+  out:{label:'Mes 4+ · Eliminar del cobro', cls:'red'}, last:{label:'Último mes de pago', cls:'yellow'},
+  date:{label:'Fecha incompleta o inválida', cls:'red'}, dateinc:{label:'Fecha inconsistente', cls:'red'},
+  dup:{label:'Posible duplicado', cls:'orange'}, client:{label:'Cliente incluido en pago', cls:'blue'}
+};
+function alertRev(P, key, create){
+  if(!state.alertReviews[P]){ if(!create) return null; state.alertReviews[P] = {}; }
+  if(!state.alertReviews[P][key] && create) state.alertReviews[P][key] = {reviewed:false, comment:'', date:null};
+  return state.alertReviews[P][key];
+}
+function setAlertComment(key, val){ const r = alertRev(ui.period, key, true); r.comment = val; save(); }
+function toggleReviewed(key){
+  const r = alertRev(ui.period, key, true);
+  r.reviewed = !r.reviewed; r.date = r.reviewed ? nowStamp() : null;
+  addLog(r.reviewed ? 'Alerta revisada' : 'Alerta reabierta', key + (r.comment ? ' · ' + r.comment : ''));
+  save(); toast(r.reviewed ? 'Alerta marcada como revisada.' : 'Alerta marcada como pendiente.', 'success'); renderAll();
+}
+function alertRemove(key, id){ const ta = document.querySelector(`[data-akey="${key}"]`); askRemoveBilling([id], ta ? ta.value : ''); }
+function bulkRemoveOut(){
+  const ids = rowsFor(ui.period).filter(r => r.si.code === 'OUT').map(r => r.p.id);
+  if(!ids.length){ toast('No hay proyectos en mes ' + (cfg().maxMonths + 1) + ' o superior.', 'info'); return; }
+  askRemoveBilling(ids, `Cumplió ${cfg().maxMonths} meses de pago`);
+}
+function renderAlerts(){
+  const P = ui.period, all = computeAlerts(P);
+  const counts = {}; all.forEach(a => counts[a.type] = (counts[a.type] || 0) + 1);
+  let list = all.filter(a => ui.alertFilter === 'all' ? true : ui.alertFilter === 'critical' ? a.severity === 'critical' : a.type === ui.alertFilter);
+  if(!ui.showReviewed) list = list.filter(a => !a.reviewed);
+  const chip = (id, label, n) => `<button class="chip ${ui.alertFilter === id ? 'active' : ''}" onclick="ui.alertFilter='${id}';renderAlerts()">${label} (${n})</button>`;
+  const outN = counts.out || 0;
+  const cards = list.map(a => {
+    const p = a.p, t = ALERT_TYPES[a.type];
+    const canRemove = p.toctoc !== 'Eliminado de pago';
+    return `<div class="alert-card ${a.reviewed ? 'reviewed' : a.severity}">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+        <div><b style="color:var(--navy);font-size:15px">${esc(p.name)}</b> ${badge(t.label, t.cls)} ${a.severity === 'critical' ? badge('Crítica', 'red') : badge('Informativa', 'yellow')}</div>
+        <div>${a.reviewed ? badge('✔ Revisado ' + fmtStamp(a.reviewedAt), 'green') : badge('Pendiente de revisión', 'gray')}</div>
+      </div>
+      <div class="alert-grid">
+        <div><span>Inmobiliaria</span>${esc(p.group) || '—'}</div>
+        <div><span>Fecha de publicación</span>${p.pubDate ? fmtCL(p.pubDate) : 'Incompleta'}</div>
+        <div><span>Estado actual</span>${esc(p.toctoc)} · ${badge(a.si.payLabel, a.si.cls)}</div>
+        <div><span>No pagar desde</span>${fmtCL(noPayDate(p))}</div>
+      </div>
+      <div class="alert-grid" style="grid-template-columns:1fr 1fr">
+        <div><span>Motivo de la alerta</span>${a.reason}</div>
+        <div><span>Acción recomendada</span><b>${a.action}</b></div>
+      </div>
+      <div class="alert-foot">
+        <textarea data-akey="${esc(a.key)}" placeholder="Comentario (se guarda automáticamente)" onchange="setAlertComment('${a.key}', this.value)">${esc(a.comment)}</textarea>
+        ${canRemove ? `<button class="btn btn-danger btn-sm" onclick="alertRemove('${a.key}','${p.id}')">⊘ Marcar como eliminado del cobro</button>` : ''}
+        <button class="btn btn-sm ${a.reviewed ? 'btn-ghost' : 'btn-success'}" onclick="toggleReviewed('${a.key}')">${a.reviewed ? '↺ Reabrir' : '✔ Revisado'}</button>
+        <button class="btn btn-sm btn-ghost" onclick="openProjectForm('${p.id}','edit')">✎ Editar</button>
+      </div></div>`;
+  }).join('');
+  $('#main').innerHTML = `
+  <div class="section-head"><div><h2>Alertas del mes · ${periodLabel(P)}</h2><div class="muted">Las alertas se generan automáticamente. Las críticas deben revisarse antes de cerrar el mes.</div></div>
+    <div class="toolbar">${outN ? `<button class="btn btn-danger" onclick="bulkRemoveOut()">⊘ Eliminar del cobro todos los de mes ${cfg().maxMonths + 1}+ (${outN})</button>` : ''}</div></div>
+  ${outN ? `<div class="notice n-error"><span class="ic">⚠</span><div><b>${outN} proyecto(s) ya no deben pagarse.</b> Superaron sus ${cfg().maxMonths} meses de pago y no se incluyen en el cálculo. Márcalos como eliminados del cobro y verifica que no vengan en la factura de ${esc(cfg().counterpart)}.</div></div>` : ''}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <div class="chips">${chip('all', 'Todas', all.length)}${chip('critical', 'Críticas', all.filter(a => a.severity === 'critical').length)}${Object.keys(ALERT_TYPES).map(k => chip(k, ALERT_TYPES[k].label, counts[k] || 0)).join('')}</div>
+      <label class="check"><input type="checkbox" ${ui.showReviewed ? 'checked' : ''} onchange="ui.showReviewed=this.checked;renderAlerts()"> Mostrar revisadas</label>
+    </div>
+    ${cards || emptyState('✅', 'Sin alertas', all.length ? 'No hay alertas con este filtro.' : 'No hay alertas para este periodo.')}
+  </div>`;
+}
+
+/* =========================================================
+   12. MÓDULO 4 · LIQUIDACIÓN MENSUAL
+   ========================================================= */
+function guardClosed(){ if(state.closures[ui.period]){ toast('El periodo está cerrado. Reábrelo para modificar la liquidación.', 'warn'); renderAll(); return true; } return false; }
+function liqSetQty(key, val){
+  if(guardClosed()) return;
+  const s = getSet(ui.period, true); let n = null;
+  if(String(val).trim() !== ''){ n = parseNum(val); if(isNaN(n) || n < 0){ toast('Cantidad inválida. Usa un número igual o mayor a 0.', 'error'); renderLiquidation(); return; } }
+  s[key].billedQty = n; addLog('Cantidad facturada', `${key}: ${n == null ? 'automática' : fmtNum(n)}`); save();
+  const item = computeSettlement(ui.period).items.find(i => i.key === key);
+  renderLiquidation(); renderTabs();
+  if(item.mismatch && !item.obs.trim()){
+    confirmDialog({title:'Justificación requerida', message:`<p>La cantidad facturada (<b>${fmtNum(item.billedQty)}</b>) difiere de la cantidad automática (<b>${fmtNum(item.autoQty)}</b>) en <b>${esc(item.name)}</b>. Diferencia: ${fmtDiff(item.diff)}.</p><p>Registra el motivo del ajuste.</p>`, input:{label:'Justificación', required:true}, confirmLabel:'Guardar justificación'})
+    .then(r => { if(r.ok){ s[key].obs = r.value; save(); toast('Justificación registrada.', 'success'); } else toast('El ajuste quedó sin justificación: no podrás cerrar el mes hasta completarla.', 'warn'); renderLiquidation(); });
+  }
+}
+function liqSet(key, field, val){
+  if(guardClosed()) return;
+  const s = getSet(ui.period, true);
+  if(field === 'unit'){ const n = parseNum(val); if(isNaN(n) || n < 0){ toast('Valor UF inválido.', 'error'); renderLiquidation(); return; } s.banner.unit = n; addLog('Valor banners', fmtNum(n) + ' UF'); }
+  else if(field === 'active'){ s.banner.active = !!val; addLog('Cobro banners', val ? 'activado' : 'desactivado'); }
+  else s[key][field] = val;
+  save(); renderLiquidation(); renderTabs();
+}
+function liqSetGlobal(field, val){
+  if(guardClosed()) return;
+  const s = getSet(ui.period, true);
+  if(field === 'ivaPct'){ const n = parseNum(val); if(isNaN(n) || n < 0){ toast('IVA inválido.', 'error'); renderLiquidation(); return; } s.ivaPct = n; }
+  else s[field] = val;
+  save(); renderLiquidation();
+}
+function liqTable(items, editable){
+  const reviewCls = r => r === 'Conforme' ? 'green' : r === 'Rechazado' ? 'red' : r === 'Requiere revisión' ? 'yellow' : 'gray';
+  return `<div class="table-wrap"><table class="data"><thead><tr>
+    <th>Ítem</th><th>Descripción</th><th class="right" data-tip="Valor en UF por unidad">Valor unitario</th><th class="right" data-tip="Calculada por la herramienta">Cant. automática</th>
+    <th class="right" data-tip="Cantidad informada en la factura. Vacío = igual a la automática.">Cant. facturada</th><th class="right">Total automático</th><th class="right">Total facturado</th><th class="right">Diferencia</th><th>Observación</th><th>Estado de revisión</th></tr></thead><tbody>
+    ${items.map(i => `<tr class="${i.needsJust ? 'r-red' : ''}">
+      <td class="name-cell">${esc(i.name)}${i.key === 'banner' ? `<div style="margin-top:6px;display:flex;gap:6px;align-items:center" class="small"><label class="switch"><input type="checkbox" ${i.active ? 'checked' : ''} ${editable ? '' : 'disabled'} onchange="liqSet('banner','active',this.checked)"><span class="slider"></span></label>${i.active ? 'Cobro activo' : 'Cobro inactivo'}</div>` : ''}</td>
+      <td class="small" style="min-width:230px;max-width:300px">${esc(i.desc)}</td>
+      <td class="right nowrap">${i.key === 'banner' && editable ? `<input class="mini right" style="width:80px" value="${fmtNum(i.unit)}" onchange="liqSet('banner','unit',this.value)" data-tip="Editable si cambia el contrato">` : fmtNum(i.unit)} UF</td>
+      <td class="right"><b>${fmtNum(i.autoQty)}</b></td>
+      <td class="right">${editable ? `<input class="mini right" style="width:80px" value="${i.manual ? fmtNum(i.billedQty) : ''}" placeholder="${fmtNum(i.autoQty)}" onchange="liqSetQty('${i.key}',this.value)">` : fmtNum(i.billedQty)}${i.manual ? '<div class="small muted">ajuste manual</div>' : ''}</td>
+      <td class="right nowrap">${fmtUF(i.autoTotal)}</td><td class="right nowrap"><b>${fmtUF(i.billedTotal)}</b></td><td class="right nowrap">${fmtDiff(i.diff)}</td>
+      <td>${editable ? `<input class="mini ${i.needsJust ? 'invalid' : ''}" style="min-width:170px" value="${esc(i.obs)}" placeholder="${i.mismatch ? 'Justificación obligatoria' : 'Observación'}" onchange="liqSet('${i.key}','obs',this.value)">` : esc(i.obs) || '—'}${i.needsJust ? '<div class="err">Falta justificación</div>' : ''}</td>
+      <td>${editable ? `<select class="mini" onchange="liqSet('${i.key}','review',this.value)">${optionList(REVIEW_STATES, i.review)}</select>` : badge(i.review, reviewCls(i.review))}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+function liqTotals(t, editable){
+  const genCls = g => g === 'Conforme' ? 'green' : g === 'Rechazado' ? 'red' : 'yellow';
+  return `<div class="totals">
+    <div class="total-box"><span>Subtotal automático</span><b>${fmtUF(t.subAuto)}</b></div>
+    <div class="total-box"><span>Subtotal facturado</span><b>${fmtUF(t.subBilled)}</b></div>
+    <div class="total-box"><span>IVA informativo ${info('Campo solo informativo. Actívalo para sumarlo al total final.')}</span>
+      ${editable ? `<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><label class="switch"><input type="checkbox" ${t.ivaOn ? 'checked' : ''} onchange="liqSetGlobal('ivaOn',this.checked)"><span class="slider"></span></label><input class="mini right" style="width:60px" value="${fmtNum(t.ivaPct)}" onchange="liqSetGlobal('ivaPct',this.value)">%</div>` : ''}
+      <b>${t.ivaOn ? fmtUF(t.iva) : 'No aplicado'}</b>${!editable ? `<div class="small muted">${fmtNum(t.ivaPct)}%</div>` : ''}</div>
+    <div class="total-box final"><span>Total final</span><b>${fmtUF(t.total)}</b></div>
+    <div class="total-box"><span>Diferencia cálculo vs factura</span><b>${fmtDiff(t.diff)}</b></div>
+    <div class="total-box"><span>Estado general</span>
+      ${editable ? `<select style="margin-top:4px" onchange="liqSetGlobal('generalStatus',this.value)"><option value="">Automático (sugerido: ${t.autoGeneral})</option>${GENERAL_STATES.map(g => `<option ${t.generalManual && t.general === g ? 'selected' : ''}>${g}</option>`).join('')}</select>` : ''}
+      <div style="margin-top:6px">${badge(t.general, genCls(t.general))}</div></div>
+  </div>`;
+}
+function projList(list, title){
+  if(!list.length) return `<details><summary>${title} (0)</summary><div class="muted small" style="padding:8px">Sin proyectos.</div></details>`;
+  return `<details><summary>${title} (${list.length})</summary><div class="table-wrap" style="margin-top:8px"><table class="data"><thead><tr><th>Proyecto</th><th>Inmobiliaria</th><th>Publicación</th><th>Mes de pago</th><th>Estado de cobro</th></tr></thead><tbody>
+    ${list.map(r => `<tr><td class="name-cell">${esc(r.name)}</td><td>${esc(r.group)}</td><td>${fmtCL(r.pubDate)}</td><td>${esc(r.payLabel)}</td><td>${esc(r.billingLabel)}</td></tr>`).join('')}</tbody></table></div></details>`;
+}
+function renderLiquidation(){
+  const P = ui.period, c = cfg(), closed = state.closures[P];
+  if(closed){
+    const s = closed.snapshot;
+    $('#main').innerHTML = `
+    <div class="section-head"><div><h2>Liquidación mensual ${esc(c.counterpart)} · ${periodLabel(P)}</h2><div class="muted">Fotografía del cierre: no cambia aunque se editen proyectos posteriormente.</div></div>
+      <div class="toolbar">${badge('Mes cerrado el ' + fmtStamp(closed.closedAt), 'green')}<button class="btn btn-ghost" onclick="exportSettlementCSV('${P}')">⇩ Exportar CSV</button><button class="btn btn-ghost" onclick="viewClosure('${closed.id}')">👁 Ver cierre completo</button><button class="btn btn-danger" onclick="reopenMonth('${P}')">↺ Reabrir mes</button></div></div>
+    <div class="notice n-success"><span class="ic">🔒</span><div>Periodo cerrado. Para modificar la liquidación debes reabrir el mes registrando el motivo.</div></div>
+    <div class="card">${liqTable(s.items, false)}${liqTotals({subAuto:s.subAuto, subBilled:s.subBilled, ivaPct:s.ivaPct, ivaOn:s.ivaOn, iva:s.iva, total:s.total, diff:s.diff, general:s.general}, false)}
+      <div style="margin-top:12px"><b>Observaciones generales:</b> ${esc(s.obs) || '—'}${s.closeNote ? `<br><b>Nota de cierre:</b> ${esc(s.closeNote)}` : ''}</div>
+      ${projList(s.chargeable, 'Proyectos cobrables (base de leads)')}${projList(s.incorporatedList, 'Proyectos incorporados en el mes')}${projList(s.outList, 'Proyectos fuera de pago')}${projList(s.clientList, 'Proyectos clientes ' + c.counterpart)}
+    </div>`;
+    return;
+  }
+  const t = computeSettlement(P);
+  const leads = t.items[1], inc = t.items[2];
+  const warns = [];
+  if(leads.billedQty !== leads.autoQty) warns.push(['error', `<b>Leads:</b> la cantidad automática (${fmtNum(leads.autoQty)} proyectos cobrables) no coincide con la cantidad facturada (${fmtNum(leads.billedQty)}).`]);
+  if(t.incOverLimit) warns.push(['warn', `<b>Incorporación:</b> se incorporaron ${t.incorporatedAll.length} proyectos, sobre el límite de ${c.incLimit}. Se mantiene el tope de ${fmtUF(c.incMaxUF)}; revisar condición contractual antes de aceptar un cobro adicional.`]);
+  if(inc.billedQty !== inc.autoQty) warns.push(['warn', `<b>Incorporación:</b> la cantidad facturada (${fmtNum(inc.billedQty)}) difiere de la automática (${fmtNum(inc.autoQty)}).`]);
+  t.items.filter(i => i.needsJust).forEach(i => warns.push(['error', `<b>${esc(i.name)}:</b> hay diferencia y falta la observación que la justifique.`]));
+  const outN = t.outRows.filter(r => r.si.code === 'OUT').length;
+  if(outN) warns.push(['error', `${outN} proyecto(s) en mes ${c.maxMonths + 1}+ quedan fuera del cálculo. Verifica que no vengan en la factura.`]);
+  $('#main').innerHTML = `
+  <div class="section-head"><div><h2>Liquidación mensual ${esc(c.counterpart)} · ${periodLabel(P)}</h2><div class="muted">Cálculo automático según proyectos del periodo. Ingresa la cantidad facturada solo si la factura difiere.</div></div>
+    <div class="toolbar">${badge('Mes abierto', 'orange')}<button class="btn btn-ghost" onclick="exportSettlementCSV('${P}')">⇩ Exportar CSV</button><button class="btn btn-navy" onclick="openCloseMonth()">🔒 Cerrar mes</button></div></div>
+  <div class="kpis" style="margin-bottom:14px">
+    <div class="kpi orange" onclick="dashGo({billing:'cobrable_all'})"><div class="k-label">Proyectos cobrables ${info('Base para leads: Publicado, No cliente dentro de sus meses de pago. Excluye clientes, fuera de periodo y eliminados del cobro.')}</div><div class="k-value">${t.chargeable.length}</div><div class="k-sub">× ${fmtNum(c.leadUF)} UF = ${fmtUF(leads.autoTotal)}</div></div>
+    <div class="kpi green" onclick="dashGo({pay:'m1'})"><div class="k-label">Incorporados en el mes ${info('Proyectos cargados en la landing con fecha de publicación en el periodo (incluye clientes).')}</div><div class="k-value">${t.incorporatedAll.length}</div><div class="k-sub">${t.incorporated.length} no clientes · ${fmtUF(inc.autoTotal)}</div></div>
+    <div class="kpi blue" onclick="dashGo({billing:'cliente'})"><div class="k-label">Clientes (no se pagan)</div><div class="k-value">${t.clientRows.length}</div><div class="k-sub">Excluidos del cálculo</div></div>
+    <div class="kpi red" onclick="dashGo({pay:'fuera'})"><div class="k-label">Fuera de pago</div><div class="k-value">${t.outRows.length}</div><div class="k-sub">Mes ${c.maxMonths + 1}+ o eliminados del cobro</div></div>
+  </div>
+  ${warns.map(([k, w]) => `<div class="notice n-${k}"><span class="ic">${k === 'error' ? '⚠' : '⚠'}</span><div>${w}</div></div>`).join('')}
+  <div class="card">${liqTable(t.items, true)}${liqTotals(t, true)}
+    <div class="field" style="margin-top:14px"><label>Observaciones generales de la liquidación</label><textarea rows="2" onchange="liqSetGlobal('obs',this.value)" placeholder="Ej.: factura N°…, acuerdos con ${esc(c.counterpart)}…">${esc(t.obs)}</textarea></div>
+    ${projList(t.chargeable.map(snapRow), 'Proyectos cobrables (base de leads)')}${projList(t.incorporatedAll.map(snapRow), 'Proyectos incorporados en el mes')}${projList(t.outRows.map(snapRow), 'Proyectos fuera de pago')}${projList(t.clientRows.map(snapRow), 'Proyectos clientes ' + c.counterpart)}
+  </div>`;
+}
+
+/* =========================================================
+   13. MÓDULO 5 · CIERRE E HISTORIAL MENSUAL
+   ========================================================= */
+function openCloseMonth(){
+  const P = ui.period, checks = closeChecks(P), ok = checks.every(c => c.ok), t = computeSettlement(P);
+  const body = `<p>Validaciones previas al cierre de <b>${periodLabel(P)}</b>:</p>
+    <ul class="check-list">${checks.map(c => `<li class="${c.ok ? 'ok' : 'fail'}"><span class="ic">${c.ok ? '✔' : '✖'}</span><div><b>${c.label}</b>${c.detail ? `<div class="small">${c.detail}</div>` : ''}</div></li>`).join('')}</ul>
+    ${ok ? `<div class="totals"><div class="total-box"><span>Total calculado</span><b>${fmtUF(t.subAuto)}</b></div><div class="total-box"><span>Total facturado</span><b>${fmtUF(t.subBilled)}</b></div><div class="total-box"><span>Diferencia</span><b>${fmtDiff(t.diff)}</b></div><div class="total-box"><span>Estado general</span><b style="font-size:15px">${esc(t.general)}</b></div></div>
+      <div class="field" style="margin-top:12px"><label>Nota de cierre (opcional)</label><textarea id="closeNote" rows="2"></textarea></div>
+      <div class="notice n-info"><span class="ic">ℹ</span><div>Se guardará una fotografía del periodo. Las ediciones posteriores de proyectos no modificarán este cierre.</div></div>`
+    : `<div class="notice n-error"><span class="ic">⚠</span><div>Corrige los puntos marcados antes de cerrar el mes.</div></div>`}`;
+  const buttons = [{label:'Cancelar', onClick: m => m.close()}];
+  if(!ok){
+    buttons.push({label:'Ir a alertas', onClick: m => { m.close(); goTab('alerts'); }});
+  } else buttons.push({label:'🔒 Confirmar cierre del mes', cls:'btn-navy', onClick: m => { const note = $('#closeNote').value.trim(); m.close(); doCloseMonth(P, note); }});
+  openModal({title:'Cerrar mes', body, size:'md', buttons});
+}
+function doCloseMonth(P, note){
+  if(state.closures[P]){ toast('Este periodo ya fue cerrado.', 'error'); return; }
+  const snapshot = Object.assign(buildSnapshot(P), {closeNote:note || ''});
+  state.closures[P] = {id:uid(), period:P, closedAt:nowStamp(), snapshot};
+  addLog('Cierre de mes', `${periodLabel(P)} · facturado ${fmtUF(snapshot.subBilled)}`);
+  save(); toast(`Mes ${periodLabel(P)} cerrado correctamente.`, 'success'); renderAll();
+}
+function reopenMonth(P){
+  const cl = state.closures[P]; if(!cl) return;
+  confirmDialog({title:'Reabrir mes', danger:true, confirmLabel:'Reabrir mes',
+    message:`<div class="notice n-warn"><span class="ic">⚠</span><div>Vas a reabrir <b>${periodLabel(P)}</b>, cerrado el ${fmtStamp(cl.closedAt)}. El cierre original se conservará en el historial como versión "Reabierta", y la liquidación volverá a ser editable con los datos actuales.</div></div>`,
+    input:{label:'Motivo de la reapertura', required:true, placeholder:'Ej.: factura corregida por TOCTOC'}, typeToConfirm:'REABRIR'})
+  .then(r => { if(!r.ok) return;
+    state.closureArchive.push(Object.assign(clone(cl), {reopenedAt:nowStamp(), reopenReason:r.value}));
+    delete state.closures[P];
+    addLog('Reapertura de mes', `${periodLabel(P)} · ${r.value}`); save(); toast('Mes reabierto. El cierre anterior quedó en el historial.', 'success'); renderAll(); });
+}
+function allClosures(){
+  return [...Object.values(state.closures).map(c => Object.assign({active:true}, c)), ...state.closureArchive.map(c => Object.assign({active:false}, c))]
+    .sort((a, b) => b.period.localeCompare(a.period) || String(b.closedAt).localeCompare(String(a.closedAt)));
+}
+function viewClosure(id){
+  const cl = allClosures().find(c => c.id === id && (c.active || true)); if(!cl) return;
+  const s = cl.snapshot;
+  const body = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${badge('Cerrado el ' + fmtStamp(cl.closedAt), 'green')}${cl.active ? badge('Vigente', 'navy') : badge('Reabierto el ' + fmtStamp(cl.reopenedAt), 'orange')}</div>
+    ${!cl.active ? `<div class="notice n-warn"><span class="ic">↺</span><div><b>Motivo de reapertura:</b> ${esc(cl.reopenReason)}</div></div>` : ''}
+    <div class="kpis" style="margin-bottom:12px">
+      <div class="kpi"><div class="k-label">Publicados</div><div class="k-value">${s.counts.published}</div></div>
+      <div class="kpi orange"><div class="k-label">Cobrables</div><div class="k-value">${s.counts.chargeable}</div></div>
+      <div class="kpi green"><div class="k-label">Incorporados</div><div class="k-value">${s.counts.incorporatedAll}</div></div>
+      <div class="kpi red"><div class="k-label">Fuera de pago</div><div class="k-value">${s.counts.out}</div></div>
+      <div class="kpi blue"><div class="k-label">Clientes</div><div class="k-value">${s.counts.clients}</div></div>
+    </div>
+    ${liqTable(s.items, false)}${liqTotals({subAuto:s.subAuto, subBilled:s.subBilled, ivaPct:s.ivaPct, ivaOn:s.ivaOn, iva:s.iva, total:s.total, diff:s.diff, general:s.general}, false)}
+    <p style="margin-top:12px"><b>Observaciones:</b> ${esc(s.obs) || '—'}${s.closeNote ? `<br><b>Nota de cierre:</b> ${esc(s.closeNote)}` : ''}</p>
+    ${projList(s.chargeable, 'Proyectos cobrables')}${projList(s.incorporatedList, 'Proyectos incorporados')}${projList(s.outList, 'Proyectos fuera de pago')}${projList(s.clientList, 'Proyectos clientes')}`;
+  openModal({title:`Cierre ${periodLabel(cl.period)}`, body, size:'lg', buttons:[
+    {label:'⇩ Exportar CSV', onClick: () => exportClosureCSV(cl)}, {label:'Cerrar', cls:'btn-primary', onClick: m => m.close()}]});
+}
+function renderHistory(){
+  const list = allClosures();
+  const removed = [];
+  state.projects.forEach(p => {
+    if(p.billingRemoved) removed.push({p, r:p.billingRemoved, current:true});
+    (p.billingHistory || []).forEach(h => removed.push({p, r:h, current:false}));
+  });
+  removed.sort((a, b) => String(b.r.at || b.r.date).localeCompare(String(a.r.at || a.r.date)));
+  $('#main').innerHTML = `
+  <div class="section-head"><div><h2>Historial</h2><div class="muted">Cierres mensuales (solo consulta), proyectos eliminados del cobro y bitácora de cambios.</div></div>
+    <div class="toolbar"><button class="btn btn-ghost" onclick="exportHistoryCSV()">⇩ Exportar historial CSV</button></div></div>
+  <div class="card"><div class="card-title"><h3>Cierres mensuales</h3></div>
+    ${list.length ? `<div class="table-wrap"><table class="data"><thead><tr><th>Periodo</th><th>Fecha de cierre</th><th class="right">Cobrables</th><th class="right">Incorporados</th><th class="right">Fuera de pago</th><th class="right">Clientes</th><th class="right">Total calculado</th><th class="right">Total facturado</th><th class="right">Diferencia</th><th>Estado general</th><th>Versión</th><th>Acciones</th></tr></thead><tbody>
+      ${list.map(c => { const s = c.snapshot; return `<tr class="${c.active ? '' : 'r-gray'}"><td class="name-cell">${periodLabel(c.period)}${c.demo ? ' ' + badge('demo', 'gray') : ''}</td><td>${fmtStamp(c.closedAt)}</td><td class="right">${s.counts.chargeable}</td><td class="right">${s.counts.incorporatedAll}</td><td class="right">${s.counts.out}</td><td class="right">${s.counts.clients}</td><td class="right">${fmtUF(s.subAuto)}</td><td class="right"><b>${fmtUF(s.subBilled)}</b></td><td class="right">${fmtDiff(s.diff)}</td><td>${badge(s.general, s.general === 'Conforme' ? 'green' : s.general === 'Rechazado' ? 'red' : 'yellow')}</td>
+        <td>${c.active ? badge('Vigente', 'navy') : `<span data-tip="${esc('Motivo: ' + c.reopenReason)}">${badge('Reabierto ' + fmtStamp(c.reopenedAt), 'orange')}</span>`}</td>
+        <td><div class="actions"><button class="icon-btn" data-tip="Ver detalle" onclick="viewClosure('${c.id}')">👁</button><button class="icon-btn" data-tip="Exportar CSV" onclick="exportClosureCSV(allClosures().find(x=>x.id==='${c.id}'))">⇩</button>${c.active ? `<button class="icon-btn danger" data-tip="Reabrir mes" onclick="reopenMonth('${c.period}')">↺</button>` : ''}</div></td></tr>`; }).join('')}
+    </tbody></table></div>` : emptyState('🗂', 'Sin cierres', 'Cuando cierres un mes en "Liquidación mensual" aparecerá aquí.', `<button class="btn btn-ghost" onclick="goTab('liq')">Ir a liquidación</button>`)}
+  </div>
+  <div class="card"><div class="card-title"><h3>Proyectos eliminados del cobro</h3>${info('Los proyectos eliminados del cobro no se borran: se mantienen aquí con la fecha y el periodo de la acción.')}</div>
+    ${removed.length ? `<div class="table-wrap"><table class="data"><thead><tr><th>Proyecto</th><th>Inmobiliaria</th><th>Publicación</th><th>Fecha de la acción</th><th>Periodo</th><th>Estado previo</th><th>Comentario</th><th>Situación</th></tr></thead><tbody>
+      ${removed.map(x => `<tr class="r-gray"><td class="name-cell">${esc(x.p.name)}</td><td>${esc(x.p.group)}</td><td>${fmtCL(x.p.pubDate)}</td><td>${fmtCL(x.r.date)}</td><td>${periodLabel(x.r.period)}</td><td>${esc(x.r.prevStatus || '')}</td><td class="notes-cell">${esc(x.r.comment || '')}</td><td>${x.current ? badge('Eliminado del cobro', 'gray') : badge('Restaurado ' + fmtStamp(x.r.restoredAt), 'green')}</td></tr>`).join('')}
+    </tbody></table></div>` : emptyState('📄', 'Sin registros', 'Aún no hay proyectos eliminados del cobro.')}
+  </div>
+  <div class="card"><div class="card-title"><h3>Bitácora de cambios</h3><span class="muted small">Últimos ${Math.min(150, state.log.length)} de ${state.log.length}</span></div>
+    ${state.log.length ? `<div class="table-wrap" style="max-height:340px"><table class="data"><thead><tr><th>Fecha</th><th>Periodo</th><th>Acción</th><th>Detalle</th><th>Usuario</th></tr></thead><tbody>
+      ${state.log.slice(0, 150).map(l => `<tr><td class="nowrap">${fmtStamp(l.at)}</td><td>${l.period ? periodShort(l.period) : '—'}</td><td><b>${esc(l.action)}</b></td><td class="small">${esc(l.detail)}</td><td class="small">${esc(l.by || '')}</td></tr>`).join('')}
+    </tbody></table></div>` : emptyState('📝', 'Sin movimientos', 'Aquí se registrarán las acciones realizadas.')}
+  </div>`;
+}
+
+/* =========================================================
+   14. CONFIGURACIÓN Y GESTIÓN DE DATOS
+   ========================================================= */
+function renderConfig(){
+  const c = cfg(), demoN = state.projects.filter(p => p.demo).length;
+  const fld = (id, label, val, tip) => `<div class="field"><label>${label} ${tip ? info(tip) : ''}</label><input id="${id}" value="${esc(val)}"></div>`;
+  $('#main').innerHTML = `
+  <div class="section-head"><div><h2>Configuración</h2><div class="muted">Parámetros del contrato y gestión de datos. Los cambios no alteran los meses ya cerrados.</div></div></div>
+  <div class="grid-2" style="margin-top:0">
+    <div class="card"><div class="card-title"><h3>Parámetros del contrato</h3></div>
+      <div class="form-grid">
+        ${fld('cBanner', 'UF mensual de banners', fmtNum(c.bannerUF), 'Valor fijo mensual del servicio de actualización de banners.')}
+        ${fld('cLead', 'UF por proyecto (envío de leads)', fmtNum(c.leadUF), 'Valor por cada proyecto cobrable del periodo.')}
+        ${fld('cIncUnit', 'UF por proyecto incorporado', fmtNum(c.incUnitUF), 'Se cobra por proyecto cuando se incorporan menos proyectos que el límite incluido.')}
+        ${fld('cIncMax', 'UF máxima por incorporación mensual', fmtNum(c.incMaxUF), 'Tope mensual del servicio de incorporación.')}
+        ${fld('cIncLimit', 'Proyectos incluidos en el cobro máximo', c.incLimit, 'Cantidad de proyectos cubiertos por el tope mensual.')}
+        ${fld('cMonths', 'Máximo de meses pagados por proyecto', c.maxMonths, 'El mes de publicación cuenta como mes 1.')}
+        ${fld('cIva', 'IVA informativo (%)', fmtNum(c.ivaPct), 'Solo informativo en la liquidación.')}
+        ${fld('cCurrency', 'Moneda de control', c.currency)}
+        ${fld('cCounter', 'Nombre de la contraparte', c.counterpart)}
+        ${fld('cPayer', 'Nombre de la empresa pagadora', c.payer)}
+        <div class="field full"><label>Periodo predeterminado al abrir ${info('Mes que se muestra al abrir la herramienta.')}</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="check"><input type="checkbox" id="cDefAuto" ${c.defaultPeriod ? '' : 'checked'} onchange="$('#cDefWrap').classList.toggle('hidden',this.checked)"> Mes actual (automático)</label><div id="cDefWrap" class="${c.defaultPeriod ? '' : 'hidden'}">${periodPicker('cDef', c.defaultPeriod || ui.period)}</div></div></div>
+      </div>
+      <div class="toolbar"><button class="btn btn-primary" onclick="saveConfig()">✔ Guardar configuración</button><button class="btn btn-ghost" onclick="resetConfig()">Restablecer valores iniciales</button></div>
+    </div>
+    <div class="card"><div class="card-title"><h3>Importación, exportación y respaldo</h3></div>
+      <div class="toolbar" style="margin-bottom:10px"><button class="btn btn-navy" onclick="downloadBackup()">⇩ Descargar respaldo</button><button class="btn btn-ghost" onclick="restoreBackup()">⇪ Restaurar respaldo</button></div>
+      <div class="toolbar" style="margin-bottom:10px"><button class="btn btn-ghost" onclick="openImportCSV()">⇪ Importar proyectos CSV</button><button class="btn btn-ghost" onclick="exportProjectsCSV()">⇩ Proyectos CSV</button><button class="btn btn-ghost" onclick="exportSettlementCSV(ui.period)">⇩ Liquidación CSV</button><button class="btn btn-ghost" onclick="exportHistoryCSV()">⇩ Historial CSV</button></div>
+      <div class="share-note"><span>ⓘ</span><div>${SHARE_NOTE}</div></div>
+      <div class="notice n-info"><span class="ic">💾</span><div>Los datos se sincronizan con el equipo (JSONBin) y se conserva una copia en este navegador (${storageOK ? 'disponible' : '<b>no disponible</b>'}). Último guardado local: <b>${fmtStamp(state.lastSaved)}</b>. <button class="btn btn-sm btn-ghost" onclick="CloudSync.openPanel()">☁ Ver sincronización</button></div></div>
+      <div class="card-title" style="margin-top:16px"><h3>Datos base del Excel</h3></div>
+      <p class="muted">Origen: <b>${EXCEL_SOURCE}</b> · ${EXCEL_PROJECTS.length} proyectos (pestaña "Carga proyectos") y pagos de abril a septiembre 2026 (pestaña "Pagos mensuales").</p>
+      <div class="toolbar"><button class="btn btn-ghost" onclick="reloadExcelData()">↺ Restaurar datos del Excel</button></div>
+      <div class="card-title" style="margin-top:16px"><h3 style="color:var(--red)">Zona de riesgo</h3></div>
+      <button class="btn btn-danger" onclick="clearAll()">🗑 Borrar toda la información</button>
+    </div>
+  </div>`;
+}
+function saveConfig(){
+  const num = (id, label, {int = false, min = 0} = {}) => { const v = parseNum($('#' + id).value); if(isNaN(v) || v < min || (int && !Number.isInteger(v))){ throw new Error(`${label}: valor inválido.`); } return v; };
+  try {
+    const n = {bannerUF:num('cBanner', 'UF banners'), leadUF:num('cLead', 'UF leads'), incUnitUF:num('cIncUnit', 'UF por incorporación'), incMaxUF:num('cIncMax', 'UF máxima'),
+      incLimit:num('cIncLimit', 'Proyectos incluidos', {int:true, min:1}), maxMonths:num('cMonths', 'Meses pagados', {int:true, min:1}), ivaPct:num('cIva', 'IVA')};
+    if(n.maxMonths > 24) throw new Error('Máximo de meses pagados: usa un valor entre 1 y 24.');
+    n.currency = $('#cCurrency').value.trim() || 'UF'; n.counterpart = $('#cCounter').value.trim() || 'TOCTOC'; n.payer = $('#cPayer').value.trim() || 'Itaú';
+    n.defaultPeriod = $('#cDefAuto').checked ? '' : readPicker('cDef');
+    Object.assign(state.config, n); addLog('Configuración actualizada', JSON.stringify(n)); save(); toast('Configuración guardada.', 'success'); renderAll();
+  } catch(e){ toast(e.message, 'error'); }
+}
+function resetConfig(){
+  confirmDialog({title:'Restablecer configuración', message:'<p>¿Volver a los valores iniciales (banners 20 UF, leads 0,5 UF, incorporación 1 UF hasta 20 UF / 20 proyectos, 3 meses)?</p>', confirmLabel:'Restablecer'})
+  .then(r => { if(!r.ok) return; state.config = defaultConfig(); addLog('Configuración restablecida', ''); save(); toast('Valores iniciales restablecidos.', 'success'); renderAll(); });
+}
+function removeDemo(){
+  confirmDialog({title:'Eliminar datos de demostración', message:'<p>Se eliminarán los proyectos de ejemplo y el cierre de demostración. Tus registros reales no se modifican.</p>', confirmLabel:'Eliminar demo', danger:true})
+  .then(r => { if(!r.ok) return;
+    const n = state.projects.filter(p => p.demo).length;
+    state.projects = state.projects.filter(p => !p.demo);
+    Object.keys(state.closures).forEach(k => { if(state.closures[k].demo){ delete state.closures[k]; if(state.settlements[k] && state.settlements[k].demo) delete state.settlements[k]; } });
+    state.closureArchive = state.closureArchive.filter(c => !c.demo);
+    addLog('Demo eliminada', `${n} proyectos de ejemplo eliminados`); save(); toast('Datos de demostración eliminados.', 'success'); renderAll(); });
+}
+async function reloadExcelData(){
+  const r1 = await confirmDialog({title:'Restaurar datos del Excel', danger:true, confirmLabel:'Continuar', message:`<div class="notice n-warn"><span class="ic">⚠</span><div>Se reemplazará la información compartida de <b>TODO el equipo</b> por los datos originales de <b>${EXCEL_SOURCE}</b>. Los cambios posteriores se perderán: descarga un respaldo antes si los necesitas.</div></div>`});
+  if(!r1.ok) return;
+  const r2 = await confirmDialog({title:'Confirmación final', danger:true, confirmLabel:'Restaurar', message:'<p>Esta acción no se puede deshacer.</p>', typeToConfirm:'RESTAURAR'});
+  if(!r2.ok) return;
+  const conf = state.config; state = defaultState(); state.config = conf; seedDemo(); save(); toast('Datos del Excel restaurados.', 'success'); renderAll();
+}
+function loadDemo(){ seedDemo(); save(); toast('Datos de demostración cargados.', 'success'); renderAll(); }
+async function clearAll(){
+  const r1 = await confirmDialog({title:'Borrar toda la información', danger:true, confirmLabel:'Continuar', message:'<div class="notice n-error"><span class="ic">⚠</span><div>Se borrarán proyectos, liquidaciones, cierres e historial <b>de TODO el equipo</b>. Te recomendamos <b>descargar un respaldo</b> antes.</div></div>'});
+  if(!r1.ok) return;
+  const r2 = await confirmDialog({title:'Confirmación final', danger:true, confirmLabel:'Borrar todo', message:'<p>Esta acción no se puede deshacer.</p>', typeToConfirm:'BORRAR'});
+  if(!r2.ok) return;
+  state = defaultState(); addLog('Borrado total', 'Se eliminó toda la información'); save(); toast('Información eliminada.', 'success'); renderAll();
+}
+
+/* =========================================================
+   15. MÓDULO 7 · EXPORTACIÓN E IMPORTACIÓN
+   ========================================================= */
+function toCSV(rows){ return '\uFEFF' + rows.map(r => r.map(v => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(';')).join('\r\n'); }
+function download(name, content, type = 'text/csv;charset=utf-8'){
+  const blob = new Blob([content], {type}); const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+function stampFile(){ const s = nowStamp(); return s.slice(0, 10).replace(/-/g, '') + '_' + s.slice(11, 16).replace(':', ''); }
+function exportProjectsCSV(){
+  const N = cfg().maxMonths, P = ui.period;
+  const head = ['IDENTIFICACIÓN PROYECTO', 'Grupo', 'Estado TOC TOC', 'Fecha Publicación', 'Desde Fecha No Pago', 'Detalle', 'Estado landing'];
+  for(let i = 1; i <= N; i++) head.push('Mes ' + i);
+  head.push(`Mes de pago (${periodLabel(P)})`, `Estado de cobro (${periodLabel(P)})`, 'Fecha eliminación cobro', 'Periodo eliminación cobro', 'Archivado');
+  const rows = state.projects.map(p => { const si = statusInfo(p, P), ms = payMonths(p);
+    const r = [p.name, p.group, p.toctoc, isValidISO(p.pubDate) ? fmtCL(p.pubDate) : p.pubDate, fmtCL(noPayDate(p)).replace('—', ''), p.notes, p.landing];
+    for(let i = 0; i < N; i++) r.push(ms[i] ? periodShort(ms[i]) : '');
+    r.push(si.payLabel, si.billingLabel, p.billingRemoved ? fmtCL(p.billingRemoved.date) : '', p.billingRemoved ? periodLabel(p.billingRemoved.period) : '', p.archived ? 'Sí' : 'No');
+    return r; });
+  download(`Proyectos_${cfg().counterpart}_${stampFile()}.csv`, toCSV([head, ...rows]));
+  toast(`Exportados ${rows.length} proyectos.`, 'success');
+}
+function settlementRows(P, s){
+  const rows = [[`Liquidación mensual ${cfg().counterpart} - ${periodLabel(P)}`], [s.closedAt ? 'Cerrado el ' + fmtStamp(s.closedAt) : 'Periodo abierto (cálculo en línea)'], [],
+    ['Ítem', 'Descripción', 'Valor unitario (UF)', 'Cantidad automática', 'Cantidad facturada', 'Total automático (UF)', 'Total facturado (UF)', 'Diferencia (UF)', 'Observación', 'Estado de revisión']];
+  s.items.forEach(i => rows.push([i.name, i.desc, fmtNum(i.unit), fmtNum(i.autoQty), fmtNum(i.billedQty), fmtNum(i.autoTotal), fmtNum(i.billedTotal), fmtNum(i.diff), i.obs, i.review]));
+  rows.push([], ['Subtotal automático (UF)', fmtNum(s.subAuto)], ['Subtotal facturado (UF)', fmtNum(s.subBilled)], [`IVA informativo ${fmtNum(s.ivaPct)}%`, s.ivaOn ? fmtNum(s.iva) : 'No aplicado'],
+    ['Total final (UF)', fmtNum(s.total)], ['Diferencia cálculo vs factura (UF)', fmtNum(s.diff)], ['Estado general', s.general], ['Observaciones', s.obs || '']);
+  rows.push([], ['Proyectos cobrables'], ['Proyecto', 'Grupo', 'Fecha Publicación', 'Mes de pago']);
+  (s.chargeableList || []).forEach(r => rows.push([r.name, r.group, fmtCL(r.pubDate), r.payLabel]));
+  return rows;
+}
+function exportSettlementCSV(P){
+  const cl = state.closures[P];
+  let s;
+  if(cl) s = Object.assign({}, cl.snapshot, {closedAt:cl.closedAt, chargeableList:cl.snapshot.chargeable});
+  else { const t = computeSettlement(P); s = Object.assign({}, t, {chargeableList:t.chargeable.map(snapRow)}); }
+  download(`Liquidacion_${cfg().counterpart}_${P}.csv`, toCSV(settlementRows(P, s))); toast('Liquidación exportada.', 'success');
+}
+function exportClosureCSV(cl){ if(!cl) return; const s = Object.assign({}, cl.snapshot, {closedAt:cl.closedAt, chargeableList:cl.snapshot.chargeable}); download(`Cierre_${cfg().counterpart}_${cl.period}${cl.active ? '' : '_reabierto'}.csv`, toCSV(settlementRows(cl.period, s))); toast('Cierre exportado.', 'success'); }
+function exportHistoryCSV(){
+  const list = allClosures();
+  if(!list.length){ toast('No hay cierres para exportar.', 'warn'); return; }
+  const head = ['Periodo', 'Fecha de cierre', 'Versión', 'Fecha reapertura', 'Motivo reapertura', 'Publicados', 'Cobrables', 'Incorporados', 'Fuera de pago', 'Clientes', 'Banners (UF)', 'Leads (UF)', 'Incorporación (UF)', 'Total calculado (UF)', 'Total facturado (UF)', 'Diferencia (UF)', 'IVA informativo (UF)', 'Total final (UF)', 'Estado general', 'Observaciones'];
+  const rows = list.map(c => { const s = c.snapshot, it = k => fmtNum((s.items.find(i => i.key === k) || {}).billedTotal);
+    return [periodLabel(c.period), fmtStamp(c.closedAt), c.active ? 'Vigente' : 'Reabierto', c.reopenedAt ? fmtStamp(c.reopenedAt) : '', c.reopenReason || '', s.counts.published, s.counts.chargeable, s.counts.incorporatedAll, s.counts.out, s.counts.clients, it('banner'), it('leads'), it('inc'), fmtNum(s.subAuto), fmtNum(s.subBilled), fmtNum(s.diff), s.ivaOn ? fmtNum(s.iva) : '', fmtNum(s.total), s.general, [s.obs, s.closeNote].filter(Boolean).join(' | ')]; });
+  download(`Historial_${cfg().counterpart}_${stampFile()}.csv`, toCSV([head, ...rows])); toast('Historial exportado.', 'success');
+}
+function downloadBackup(){
+  download(`Respaldo_Control_${cfg().counterpart}_${stampFile()}.json`, JSON.stringify(Object.assign({app:'Control_TOCTOC_Itau', exportedAt:nowStamp()}, state), null, 2), 'application/json');
+  addLog('Respaldo descargado', ''); save(); toast('Respaldo JSON descargado.', 'success');
+}
+function pickFile(accept, cb){ const i = document.createElement('input'); i.type = 'file'; i.accept = accept; i.onchange = () => { if(i.files[0]) cb(i.files[0]); }; i.click(); }
+function readText(file, cb){
+  const fr = new FileReader();
+  fr.onload = () => { let t = String(fr.result); if(t.includes('\uFFFD')){ const f2 = new FileReader(); f2.onload = () => cb(String(f2.result)); f2.readAsText(file, 'windows-1252'); } else cb(t); };
+  fr.onerror = () => toast('No se pudo leer el archivo.', 'error');
+  fr.readAsText(file, 'UTF-8');
+}
+function restoreBackup(){
+  pickFile('.json,application/json', file => readText(file, txt => {
+    let obj; try { obj = JSON.parse(txt); } catch(e){ toast('El archivo no es un JSON válido.', 'error'); return; }
+    if(!obj || !Array.isArray(obj.projects) || !obj.config){ toast('El archivo no corresponde a un respaldo de esta herramienta.', 'error'); return; }
+    confirmDialog({title:'Restaurar respaldo', danger:true, confirmLabel:'Restaurar', message:`<p>Archivo: <b>${esc(file.name)}</b> (${obj.projects.length} proyectos, ${Object.keys(obj.closures || {}).length} cierres${obj.exportedAt ? ', exportado el ' + fmtStamp(obj.exportedAt) : ''}).</p><div class="notice n-warn"><span class="ic">⚠</span><div>La información actual compartida con el equipo será reemplazada. Descarga un respaldo antes si la necesitas.</div></div>`})
+    .then(r => { if(!r.ok) return; delete obj.app; delete obj.exportedAt; state = normalizeState(obj); addLog('Respaldo restaurado', file.name); save(); toast('Respaldo restaurado correctamente.', 'success'); renderAll(); });
+  }));
+}
+/* ---------- Importación CSV con mapeo y vista previa ---------- */
+let imp = null;
+const IMP_FIELDS = [
+  ['name', 'IDENTIFICACIÓN PROYECTO', ['identificacion proyecto', 'proyecto', 'nombre']],
+  ['group', 'Grupo', ['grupo', 'inmobiliaria']],
+  ['toctoc', 'Estado TOC TOC', ['estado toc toc', 'estado toctoc', 'estado']],
+  ['pub', 'Fecha Publicación', ['fecha publicacion', 'fecha de publicacion', 'publicacion']],
+  ['nopay', 'Desde Fecha No Pago', ['desde fecha no pago', 'fecha no pago', 'no pago']],
+  ['notes', 'Detalle', ['detalle', 'observacion', 'observaciones']]
+];
+function parseCSV(text){
+  const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+  const delim = [';', '\t', ','].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(q){ if(ch === '"'){ if(text[i + 1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if(ch === '"') q = true;
+    else if(ch === delim){ row.push(cur); cur = ''; }
+    else if(ch === '\n' || ch === '\r'){ if(ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += ch;
+  }
+  if(cur !== '' || row.length){ row.push(cur); rows.push(row); }
+  return rows.map(r => r.map(c => c.replace(/^\uFEFF/, '').trim()));
+}
+function normalizeToctoc(raw){
+  const n = norm(raw);
+  if(!n) return {v:'Pendiente', warn:'Estado vacío: se asigna "Pendiente".'};
+  if(n.includes('no cliente')) return {v:'Publicado, No cliente'};
+  if(n.includes('eliminado') && n.includes('landing')) return {v:'Eliminado de landing'};
+  if(n.includes('eliminado') && (n.includes('pago') || n.includes('cobro'))) return {v:'Eliminado de pago'};
+  if(n.includes('cliente')) return {v:'Publicado, Cliente'};
+  if(n.includes('pendiente')) return {v:'Pendiente'};
+  return {v:'Pendiente', warn:`Estado "${raw}" no reconocido: se asigna "Pendiente".`};
+}
+function openImportCSV(){
+  pickFile('.csv,.txt,text/csv', file => readText(file, txt => {
+    const all = parseCSV(txt).filter(r => r.some(c => c));
+    if(!all.length){ toast('El archivo está vacío.', 'error'); return; }
+    let hi = all.findIndex(r => r.filter(c => IMP_FIELDS.some(f => f[2].includes(norm(c)))).length >= 2);
+    if(hi < 0) hi = 0;
+    const headers = all[hi];
+    const map = {};
+    IMP_FIELDS.forEach(([k, , aliases]) => { let idx = headers.findIndex(h => norm(h) === aliases[0]); if(idx < 0) idx = headers.findIndex(h => aliases.includes(norm(h))); map[k] = idx; });
+    imp = {fileName:file.name, headers, data:all.slice(hi + 1), map, fmt:'DMY', decisions:{}, overrides:{}, confirms:{}, skipErrors:false};
+    imp.modal = openModal({title:'Importar proyectos desde CSV', body:'', size:'lg', buttons:[]});
+    renderImport();
+  }));
+}
+function impCell(r, k){ const i = imp.map[k]; return i >= 0 && i < r.length ? r[i] : ''; }
+function impAnalyze(){
+  const N = cfg().maxMonths, seen = {};
+  let dmyOK = 0, mdyOK = 0;
+  const res = imp.data.map((r, i) => {
+    const name = impCell(r, 'name'), group = impCell(r, 'group') || 'SIN GRUPO';
+    const tt = normalizeToctoc(impCell(r, 'toctoc'));
+    const pubRaw = imp.overrides[i] != null ? imp.overrides[i] : impCell(r, 'pub');
+    const pub = imp.overrides[i] != null ? (imp.overrides[i].trim() ? (parseCLStrict(imp.overrides[i]) ? {iso:parseCLStrict(imp.overrides[i])} : {error:'Fecha inválida (DD/MM/AAAA)'}) : {iso:'', empty:true}) : parseDateFlexible(pubRaw, imp.fmt);
+    const np = parseDateFlexible(impCell(r, 'nopay'), imp.fmt);
+    const out = {i, name, group, toctoc:tt.v, pubRaw, pub, np, notes:impCell(r, 'notes'), issues:[], block:false, ambiguous:false, dup:null};
+    if(!name){ out.issues.push(['red', 'Sin nombre de proyecto']); out.block = true; }
+    if(tt.warn) out.issues.push(['yellow', tt.warn]);
+    if(pub.error){ out.issues.push(['red', pub.error + ': corrige la fecha']); out.block = true; }
+    else if(pub.empty) out.issues.push(['yellow', 'Sin fecha: se importará con alerta']);
+    if(np.error && impCell(r, 'nopay')) out.issues.push(['yellow', '"Desde Fecha No Pago" inválida: se ignora']);
+    // Consistencia publicación vs "desde no pago" para detectar formato MM/DD
+    const rawP = impCell(r, 'pub'), rawN = impCell(r, 'nopay');
+    const pd = parseDateFlexible(rawP, 'DMY'), nd = parseDateFlexible(rawN, 'DMY'), pm = parseDateFlexible(rawP, 'MDY'), nm = parseDateFlexible(rawN, 'MDY');
+    if(pd.iso && nd.iso && monthDiff(ymOf(pd.iso), ymOf(nd.iso)) === N) dmyOK++;
+    if(pm.iso && nm.iso && monthDiff(ymOf(pm.iso), ymOf(nm.iso)) === N) mdyOK++;
+    if(pub.iso && np.iso && imp.overrides[i] == null && monthDiff(ymOf(pub.iso), ymOf(np.iso)) !== N){
+      out.ambiguous = true;
+      if(!imp.confirms[i]){ out.issues.push(['red', `Fecha ambigua: con este formato la publicación (${fmtCL(pub.iso)}) no calza con "no pago" (${fmtCL(np.iso)}). Corrige o confirma.`]); out.block = true; }
+      else out.issues.push(['yellow', 'Fecha confirmada manualmente']);
+    }
+    // Duplicados contra la base y dentro del archivo
+    const key = norm(name) + '|' + norm(group);
+    const ex = state.projects.find(p => norm(p.name) + '|' + norm(p.group) === key);
+    if(name && ex){ out.dup = ex; out.issues.push(['orange', 'Ya existe en la base']); }
+    if(name && seen[key] != null){ out.issues.push(['orange', `Repetido en el archivo (fila ${seen[key] + 1})`]); out.dupFile = true; }
+    if(name && seen[key] == null) seen[key] = i;
+    out.decision = (out.dup || out.dupFile) ? (imp.decisions[i] || 'skip') : 'new';
+    if(out.decision === 'skip') out.block = false;
+    return out;
+  });
+  return {res, dmyOK, mdyOK};
+}
+function impSetMap(k, v){ imp.map[k] = +v; renderImport(); }
+function impSet(k, v){ imp[k] = v; renderImport(); }
+function impDecision(i, v){ imp.decisions[i] = v; renderImport(); }
+function impOverride(i, v){ imp.overrides[i] = v; renderImport(); }
+function impConfirm(i, v){ imp.confirms[i] = v; renderImport(); }
+function renderImport(){
+  const {res, dmyOK, mdyOK} = impAnalyze(), m = imp.modal;
+  const headOpts = k => `<select onchange="impSetMap('${k}',this.value)"><option value="-1">— No importar —</option>${imp.headers.map((h, i) => `<option value="${i}" ${imp.map[k] === i ? 'selected' : ''}>${esc(h || 'Columna ' + (i + 1))}</option>`).join('')}</select>`;
+  const blocking = res.filter(r => r.block && r.decision !== 'skip');
+  const toImport = res.filter(r => r.decision !== 'skip' && !(r.block));
+  const suggest = imp.fmt === 'DMY' && mdyOK > dmyOK;
+  const rowsHTML = res.map(r => {
+    const isDup = r.dup || r.dupFile;
+    const dateCell = (r.pub.error || r.ambiguous || imp.overrides[r.i] != null)
+      ? `<input class="mini ${r.pub.error ? 'invalid' : ''}" style="width:105px" placeholder="DD/MM/AAAA" value="${esc(imp.overrides[r.i] != null ? imp.overrides[r.i] : (r.pub.iso ? fmtCL(r.pub.iso) : r.pubRaw))}" onchange="impOverride(${r.i},this.value)"><div class="small muted">Original: ${esc(impCell(imp.data[r.i], 'pub')) || '—'}</div>`
+      : (r.pub.iso ? fmtCL(r.pub.iso) : '<span class="muted">—</span>');
+    return `<tr class="${r.block && r.decision !== 'skip' ? 'r-red' : r.decision === 'skip' ? 'r-gray' : ''}">
+      <td>${r.i + 1}</td><td class="name-cell">${esc(r.name) || '—'}</td><td>${esc(r.group)}</td><td>${badge(r.toctoc, r.toctoc === 'Publicado, Cliente' ? 'blue' : 'navy')}</td>
+      <td>${dateCell}</td><td>${r.np.iso ? fmtCL(r.np.iso) : '—'}</td><td class="notes-cell">${esc(r.notes)}</td>
+      <td>${r.issues.length ? r.issues.map(([c, t]) => `<div style="margin-bottom:3px">${badge(t, c).replace('class="badge','class="badge wrap')}</div>`).join('') : badge('OK', 'green')}
+        ${r.ambiguous && imp.overrides[r.i] == null ? `<label class="check small"><input type="checkbox" ${imp.confirms[r.i] ? 'checked' : ''} onchange="impConfirm(${r.i},this.checked)"> Confirmo la fecha</label>` : ''}</td>
+      <td>${isDup ? `<select class="mini" onchange="impDecision(${r.i},this.value)">${optionList([['skip', 'Omitir'], ...(r.dup ? [['update', 'Actualizar existente']] : []), ['new', 'Importar como nuevo']], r.decision)}</select>` : 'Nuevo'}</td></tr>`;
+  }).join('');
+  m.setBody(`
+    <p>Archivo: <b>${esc(imp.fileName)}</b> · ${imp.data.length} filas de datos.</p>
+    <div class="card" style="padding:12px"><div class="card-title"><h3>1. Mapeo de columnas</h3></div>
+      <div class="filters">${IMP_FIELDS.map(([k, label]) => `<div class="field"><label>${label}</label>${headOpts(k)}</div>`).join('')}
+        <div class="field"><label>Formato de fecha del archivo ${info('Por defecto DD/MM/AAAA (Chile). Usa MM/DD/AAAA solo si el archivo viene de Excel configurado en inglés.')}</label><select onchange="impSet('fmt',this.value)">${optionList([['DMY', 'DD/MM/AAAA (Chile)'], ['MDY', 'MM/DD/AAAA (Excel en inglés)']], imp.fmt)}</select></div></div>
+      ${suggest ? `<div class="notice n-warn"><span class="ic">⚠</span><div><b>Posible formato MM/DD/AAAA detectado.</b> En ${mdyOK} fila(s) la "Fecha Publicación" y "Desde Fecha No Pago" solo calzan con ${cfg().maxMonths} meses de diferencia si se leen como MM/DD/AAAA (ej.: 03/01/2026 → 01/03/2026). No se cambia automáticamente: confirma el formato. <button class="btn btn-sm btn-ghost" onclick="impSet('fmt','MDY')">Usar MM/DD/AAAA</button></div></div>` : ''}
+    </div>
+    <div class="card" style="padding:12px"><div class="card-title"><h3>2. Vista previa y decisiones</h3>
+      <div class="small">${badge(toImport.length + ' por importar', 'green')} ${badge(res.filter(r => r.decision === 'skip').length + ' omitidos', 'gray')} ${badge(blocking.length + ' con errores', blocking.length ? 'red' : 'gray')}</div></div>
+      ${blocking.length ? `<div class="notice n-error"><span class="ic">⚠</span><div>Hay ${blocking.length} fila(s) con fechas inválidas o ambiguas. Corrígelas en la columna de fecha, confirma la fecha, o marca la opción para omitirlas.</div></div><label class="check" style="margin-bottom:8px"><input type="checkbox" ${imp.skipErrors ? 'checked' : ''} onchange="impSet('skipErrors',this.checked)"> Omitir filas con errores y continuar</label>` : ''}
+      <div class="table-wrap" style="max-height:48vh"><table class="data"><thead><tr><th>#</th><th>Proyecto</th><th>Grupo</th><th>Estado TOCTOC</th><th>Fecha publicación</th><th>Desde no pago</th><th>Detalle</th><th>Validación</th><th>Decisión</th></tr></thead><tbody>${rowsHTML || '<tr><td colspan="9">' + emptyState('📄', 'Sin filas', 'El archivo no contiene datos bajo el encabezado.') + '</td></tr>'}</tbody></table></div>
+    </div>`);
+  m.setButtons([{label:'Cancelar', onClick: x => x.close()},
+    {label:`⇪ Importar ${toImport.length} registro(s)`, cls:'btn-primary', disabled: !toImport.length || (blocking.length && !imp.skipErrors), onClick: x => doImport(x)}]);
+}
+function doImport(m){
+  const {res} = impAnalyze();
+  let added = 0, updated = 0, skipped = 0;
+  res.forEach(r => {
+    if(r.decision === 'skip' || r.block){ skipped++; return; }
+    const fields = {name:r.name, group:r.group, toctoc:r.toctoc, pubDate:r.pub.iso || '', notes:r.notes, noPayImported:r.np.iso || '',
+      landing: r.toctoc === 'Eliminado de landing' ? 'Eliminado de landing' : r.toctoc === 'Pendiente' ? 'Pendiente de publicación' : 'Publicado', updatedAt:nowStamp()};
+    if(r.decision === 'update' && r.dup){ Object.assign(r.dup, fields); updated++; }
+    else { state.projects.push(Object.assign({id:uid(), demo:false, archived:false, billingRemoved:null, landingRemoved:null, billingHistory:[], createdAt:nowStamp()}, fields)); added++; }
+  });
+  addLog('Importación CSV', `${imp.fileName}: ${added} nuevos, ${updated} actualizados, ${skipped} omitidos`);
+  save(); m.close(); toast(`Importación completa: ${added} nuevos, ${updated} actualizados, ${skipped} omitidos.`, 'success'); renderAll();
+}
+
+/* =========================================================
+   16. INICIO
+   ========================================================= */
+load();
+renderAll();
+if(!storageOK) toast('localStorage no está disponible: descarga un respaldo antes de cerrar.', 'warn', 8000);
+CloudSync.init({
+  app: 'control-toctoc-itau', prefix: 'toctoc', title: 'Control de pagos TOCTOC', binName: 'control-toctoc-itau', prepend: ['/log'],
+  getData(){ const d = clone(state); delete d.lastSaved; return d; },
+  applyData(d){
+    state = normalizeState(Object.assign({}, clone(d), {lastSaved: state.lastSaved}));
+    if(storageOK){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){} }
+    renderAll();
+  },
+  onStatus: renderSaveIndicator,
+  isBusyUI(){ return modalStack.length > 0; }
+});
+
+</script>
+</body>
+</html>
