@@ -475,7 +475,11 @@ const CloudSync = (function(){
     for(let i = 0; i < 6; i++){
       let theirs = null, rev = 0;
       if(env && env.local){ theirs = S.base; rev = S.rev; }
-      else if(env){ theirs = await unpack(env); rev = env.rev || 0; }
+      else if(env){
+        rev = env.rev || 0;
+        try{ theirs = await unpack(env); }catch(e){ if(e.code) throw e; theirs = null; }
+        if(!isObj(theirs)) theirs = null;                    // contenido no válido: se trata como vacío
+      }
       const want = target(mine, theirs, env);
       if(theirs !== null && deepEqual(want, theirs)){
         if(!(env && env.local)){ S.savedAt = env.savedAt || ''; S.savedBy = env.savedBy || ''; }
