@@ -264,21 +264,23 @@ details summary{cursor:pointer;font-weight:600;color:var(--navy)}
 <div id="modalRoot"></div>
 <script>
 /* =========================================================================
-   SINCRONIZACIÓN COMPARTIDA (JSONBin.io) — módulo común del equipo hipotecario
-   - Cada persona ingresa una vez Master Key + BIN ID (se guardan en su dispositivo).
-   - Los datos viven en un BIN de JSONBin; todos ven lo mismo.
-   - Cada cambio se envía solo (con unos segundos de espera) y se mezcla con lo que
-     otras personas hayan guardado antes, para no pisar el trabajo de nadie.
-   - Sin conexión: los cambios quedan en el equipo y se envían al reconectar.
-   - Los datos se comprimen (gzip + base64) para respetar el límite de 100 KB por BIN.
+   SINCRONIZACIÓN COMPARTIDA — módulo común del equipo hipotecario
+   - Los datos viven en un servidor propio (Google Apps Script de la cuenta del
+     administrador). No hay claves que ingresar: cada persona solo indica su nombre.
+   - Cada cambio se envía solo (con unos segundos de espera). El servidor acepta
+     la escritura solo si nadie guardó antes; si alguien lo hizo, se mezclan ambos
+     cambios y se reintenta, así nunca se pisa el trabajo de otra persona.
+   - Sin conexión o con el servidor ocupado: los cambios quedan en el equipo y se
+     reintentan solos hasta lograrlo.
+   - Los datos se comprimen (gzip + base64).
    ========================================================================= */
 const CloudSync = (function(){
   'use strict';
-  const API = 'https://api.jsonbin.io/v3';
-  const LS_KEY = 'itau_hip_key', LS_NAME = 'itau_hip_name';
-  const DEBOUNCE_MS = 2500;   // agrupa varios cambios seguidos en un solo envío (cuida el límite de solicitudes)
+  const API = 'https://script.google.com/macros/s/AKfycbyweuwBd_b9d_wA7QMgZoAN2DI4jYoPVcaX9qiUG4uhDjMx2pbIk_xuyVSgAd-5euGe/exec';
+  const LS_NAME = 'itau_hip_name';
+  const DEBOUNCE_MS = 2000;   // agrupa varios cambios seguidos en un solo envío
   let C = null, P = '', ov = null, pn = null, started = false, retryTimer = null, saveTimer = null, retryMs = 20000;
-  const S = {rev:0, base:null, busy:false, again:false, dirty:false, state:'init', err:null, errCode:'',
+  const S = {legacy:false, rev:0, base:null, busy:false, again:false, dirty:false, state:'init', err:null, errCode:'',
              savedAt:'', savedBy:'', lastSync:0};
   const memStore = {};
 
@@ -376,8 +378,8 @@ const CloudSync = (function(){
     const env = {app:C.app, v:1, rev:rev, savedAt:new Date().toISOString(), savedBy:user() || 'sin nombre'};
     const json = JSON.stringify(data);
     if(canGzip()){ env.enc = 'gzip-b64'; env.data = await gzip(json); }
-    else{ if(json.length > 90000) throw new SyncError('size', 'Los datos superan el límite del plan gratuito y este navegador no puede comprimirlos. Usa una versión reciente de Chrome, Edge o Safari.'); env.enc = 'json'; env.data = data; }
-    if(JSON.stringify(env).length > 98000) throw new SyncError('size', 'Los datos superan el límite de 100 KB del plan gratuito de JSONBin. Exporta un respaldo y depura registros antiguos.');
+    else{ env.enc = 'json'; env.data = data; }
+    if(JSON.stringify(env).length > 180000) throw new SyncError('size', 'Los datos superan el tamaño máximo del espacio compartido. Exporta un respaldo y depura registros antiguos.');
     return env;
   }
   async function unpack(env){
@@ -388,47 +390,43 @@ const CloudSync = (function(){
     return env.data;
   }
 
-  /* ---------- JSONBin ---------- */
-  const getKey = () => (store.get(LS_KEY) || '').trim();
-  const getBin = () => (store.get(P + 'bin') || '').trim();
+  /* ---------- servidor (Apps Script) ---------- */
   const user = () => (store.get(LS_NAME) || '').trim();
-  async function http(method, path, key, body, extraHeaders){
-    const headers = Object.assign({'X-Master-Key': key}, extraHeaders || {});
-    if(body !== undefined) headers['Content-Type'] = 'application/json';
-    let r;
-    try{ r = await fetch(API + path, {method, headers, body: body !== undefined ? JSON.stringify(body) : undefined, cache:'no-store'}); }
+  async function call(opts, url){
+    let r, j;
+    try{ r = await fetch(url, Object.assign({cache:'no-store', redirect:'follow'}, opts)); }
     catch(e){ throw new SyncError('network', 'Sin conexión con el servidor.'); }
-    if(!r.ok){
-      let msg = ''; try{ msg = (await r.json()).message || ''; }catch(e){}
-      if(r.status === 401 || r.status === 403) throw new SyncError('auth', 'La Master Key no es válida o no tiene permiso.');
-      if(r.status === 404) throw new SyncError('bin', 'No se encontró ese BIN ID. Revisa que esté copiado completo.');
-      if(r.status === 429 || /limit/i.test(msg)) throw new SyncError('limit', 'JSONBin alcanzó su límite de solicitudes. Intenta más tarde.');
-      throw new SyncError('http', 'Error ' + r.status + (msg ? ': ' + msg : ''));
-    }
-    return await r.json();
+    if(!r.ok) throw new SyncError('network', 'El servidor no respondió (código ' + r.status + ').');
+    try{ j = await r.json(); }catch(e){ throw new SyncError('network', 'Respuesta inesperada del servidor.'); }
+    return j;
   }
-  async function jbGet(key, bin){
-    const env = await http('GET', '/b/' + encodeURIComponent(bin) + '/latest', key, undefined, {'X-Bin-Meta':'false'});
-    if(!isObj(env) || env.app !== C.app || !('data' in env))
-      throw new SyncError('mismatch', 'Ese BIN ID no corresponde a esta aplicación (' + C.title + '). Verifica que usas el BIN ID correcto.');
-    return env;
+  async function srvGet(){
+    const j = await call({method:'GET'}, API + '?op=get&app=' + encodeURIComponent(C.app) + '&t=' + Date.now());
+    if(!j.ok) throw new SyncError('server', j.error || 'Error del servidor.');
+    return j.env || null;
   }
-  const jbPut = (key, bin, env) => http('PUT', '/b/' + encodeURIComponent(bin), key, env);
-  async function jbCreate(key, env){
-    const j = await http('POST', '/b', key, env, {'X-Bin-Name': C.binName, 'X-Bin-Private':'true'});
-    if(!j || !j.metadata || !j.metadata.id) throw new SyncError('http', 'JSONBin no devolvió el ID del nuevo BIN.');
-    return j.metadata.id;
+  /** Devuelve {ok:true, rev} o {conflict:true, env}. */
+  async function srvPut(env, baseRev){
+    const j = await call({method:'POST', body: JSON.stringify({op:'put', app:C.app, baseRev:baseRev, env:env})}, API);
+    if(j.ok) return {ok:true, rev:j.rev};
+    if(j.conflict) return {conflict:true, env:j.env || null};
+    throw new SyncError('server', j.error || 'Error del servidor.');
   }
 
   /* ---------- metadatos locales (última versión sincronizada) ---------- */
   function loadMeta(){
     try{
-      const m = JSON.parse(store.get(P + 'sync') || 'null');
-      if(m && m.base && m.bin === getBin()){ S.base = m.base; S.rev = m.rev || 0; S.savedAt = m.savedAt || ''; S.savedBy = m.savedBy || ''; S.lastSync = m.lastSync || 0; S.dirty = !!m.dirty; }
+      const m = JSON.parse(store.get(P + 'sync2') || 'null');
+      if(m && m.base){ S.base = m.base; S.rev = m.rev || 0; S.savedAt = m.savedAt || ''; S.savedBy = m.savedBy || ''; S.lastSync = m.lastSync || 0; S.dirty = !!m.dirty; }
     }catch(e){}
+    // Datos de la versión anterior (JSONBin): este equipo ya trabajaba con el equipo
+    if(!S.base && store.get(P + 'sync')) S.legacy = true;
+    // limpieza de credenciales antiguas que ya no se usan
+    store.del('itau_hip_key'); store.del(P + 'bin');
   }
   function saveMeta(){
-    store.set(P + 'sync', JSON.stringify({bin:getBin(), base:S.base, rev:S.rev, savedAt:S.savedAt, savedBy:S.savedBy, lastSync:S.lastSync, dirty:S.dirty}));
+    store.set(P + 'sync2', JSON.stringify({base:S.base, rev:S.rev, savedAt:S.savedAt, savedBy:S.savedBy, lastSync:S.lastSync, dirty:S.dirty}));
+    if(S.base && S.legacy){ S.legacy = false; store.del(P + 'sync'); }
   }
 
   /* ---------- estado visible ---------- */
@@ -439,7 +437,7 @@ const CloudSync = (function(){
     return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
   }
   function info(){
-    const base = {state:S.state, dirty:S.dirty, savedAt:S.savedAt, savedBy:S.savedBy, savedAtText:fmtDT(S.savedAt), bin:getBin(), user:user(), error:S.err};
+    const base = {state:S.state, dirty:S.dirty, savedAt:S.savedAt, savedBy:S.savedBy, savedAtText:fmtDT(S.savedAt), user:user(), error:S.err};
     const last = S.savedAt ? 'Última modificación: ' + fmtDT(S.savedAt) + (S.savedBy ? ' por ' + S.savedBy : '') : '';
     const txt = {
       init:'Iniciando…', loading:'Conectando con el equipo…', saving:'Guardando cambios…',
@@ -462,48 +460,60 @@ const CloudSync = (function(){
     if(!started || !S.base) return;
     S.dirty = true; saveMeta(); setStatus('saving'); schedule();
   }
+  /** Decide qué debe quedar en el servidor a partir de lo mío y lo del servidor. */
+  function target(mine, theirs, env){
+    if(theirs === null) return mine;                         // servidor vacío: subo lo mío
+    if(S.base) return merge(S.base, mine, theirs, '');       // caso normal: mezcla de 3 vías
+    if(S.legacy) return env && env.seed ? mine : merge({}, mine, theirs, '');   // migración: unión
+    return theirs;                                           // dispositivo nuevo: tomo lo del equipo
+  }
+  async function syncCore(){
+    const mine = C.getData();
+    // Con cambios pendientes se intenta guardar directo (1 sola solicitud);
+    // si alguien guardó antes, el servidor responde con su versión y se mezcla.
+    let env = (S.base && S.dirty) ? {local:true} : await srvGet();
+    for(let i = 0; i < 6; i++){
+      let theirs = null, rev = 0;
+      if(env && env.local){ theirs = S.base; rev = S.rev; }
+      else if(env){ theirs = await unpack(env); rev = env.rev || 0; }
+      const want = target(mine, theirs, env);
+      if(theirs !== null && deepEqual(want, theirs)){
+        if(!(env && env.local)){ S.savedAt = env.savedAt || ''; S.savedBy = env.savedBy || ''; }
+        return {merged:theirs, rev:rev, mine:mine};
+      }
+      const out = await pack(want, rev + 1);
+      if(theirs === null && !S.base && !S.legacy) out.seed = true;
+      const res = await srvPut(out, rev);
+      if(res.ok){ S.savedAt = out.savedAt; S.savedBy = out.savedBy; return {merged:want, rev:res.rev, mine:mine}; }
+      env = res.env;                                         // conflicto: vuelvo a mezclar con lo vigente
+    }
+    throw new SyncError('busy', 'Mucha actividad simultánea; se reintentará en unos segundos.');
+  }
   async function sync(reason){
     if(!started) return;
     if(S.busy){ S.again = true; return; }
-    const key = getKey(), bin = getBin();
-    if(!key || !bin) return;
     S.busy = true; clearTimeout(retryTimer);
     if(S.state !== 'saving') setStatus(S.base ? (S.dirty ? 'saving' : 'loading') : 'loading');
     try{
-      const env = await jbGet(key, bin);
-      const theirs = await unpack(env);
-      const first = !S.base, mine = C.getData();
-      const merged = first ? theirs : merge(S.base, mine, theirs, '');
-      let rev = env.rev || 0, savedAt = env.savedAt || '', savedBy = env.savedBy || '';
-      if(!deepEqual(merged, theirs)){
-        rev = rev + 1;
-        const out = await pack(merged, rev);
-        await jbPut(key, bin, out);
-        savedAt = out.savedAt; savedBy = out.savedBy;
-      }
-      S.base = clone(merged); S.rev = rev; S.savedAt = savedAt; S.savedBy = savedBy; S.lastSync = Date.now();
+      const r = await syncCore();
+      S.base = clone(r.merged); S.rev = r.rev; S.lastSync = Date.now();
       const cur = C.getData();
-      if(!deepEqual(cur, mine)){            // el usuario siguió editando mientras se enviaba
-        C.applyData(merge(mine, cur, merged, ''));
+      if(!deepEqual(cur, r.mine)){            // el usuario siguió editando mientras se enviaba
+        C.applyData(merge(r.mine, cur, r.merged, ''));
         S.dirty = true; S.again = true;
       }else{
-        if(!deepEqual(merged, mine)) C.applyData(merged);
+        if(!deepEqual(r.merged, r.mine)) C.applyData(r.merged);
         S.dirty = false;
       }
-      saveMeta(); retryMs = 20000;
+      saveMeta(); retryMs = 5000;
       setStatus('ok');
     }catch(e){
       const code = e.code || 'unknown';
-      if(code === 'network'){
-        S.dirty = S.base ? !deepEqual(C.getData(), S.base) : false; saveMeta();
-        setStatus('offline', e.message, code);
-        retryTimer = setTimeout(() => sync('retry'), retryMs); retryMs = Math.min(retryMs * 2, 300000);
-      }else if(code === 'limit'){
-        setStatus('error', e.message, code);
-        retryTimer = setTimeout(() => sync('retry'), 300000);
-      }else{
-        setStatus('error', e.message || String(e), code);
-      }
+      if(S.base){ S.dirty = !deepEqual(C.getData(), S.base); saveMeta(); }
+      if(code === 'network' || code === 'busy') setStatus('offline', e.message, code);
+      else setStatus('error', e.message || String(e), code);
+      // siempre se reintenta solo, con espera creciente (máx. 2 minutos)
+      retryTimer = setTimeout(() => sync('retry'), retryMs); retryMs = Math.min(retryMs * 2, 120000);
     }finally{
       S.busy = false;
       if(S.again){ S.again = false; schedule(300); }
@@ -557,73 +567,39 @@ const CloudSync = (function(){
   function showBlock(text){
     showOv('<div class="cs-card cs-center"><div class="cs-brand">' + esc(C.title) + '</div><div class="cs-spin"></div><h2>' + esc(text) + '</h2><p>Un momento por favor…</p></div>', true);
   }
+  let failTimer = null;
   function showFailure(){
     const msg = S.err || 'No se pudo conectar.';
     showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + '</div><h2>No pudimos cargar los datos</h2><div class="cs-err">' + esc(msg) + '</div>' +
-      '<button class="cs-btn cs-acc" id="cs-retry">Reintentar</button><button class="cs-btn cs-sec" id="cs-reconf">Cambiar configuración</button></div>', true);
-    $o('#cs-retry').onclick = () => { showBlock('Cargando datos del equipo…'); sync('retry').then(afterFirstSync); };
-    $o('#cs-reconf').onclick = () => showSetup('');
+      '<p style="margin-top:12px">Se reintentará automáticamente en unos segundos. Revisa tu conexión a internet.</p>' +
+      '<button class="cs-btn cs-acc" id="cs-retry">Reintentar ahora</button></div>', true);
+    $o('#cs-retry').onclick = firstLoad;
+    clearTimeout(failTimer); failTimer = setTimeout(() => { if(!S.base) firstLoad(); }, 15000);
   }
-  function afterFirstSync(){
-    if(S.base){ hideOv(); return; }
-    if(['auth', 'bin', 'mismatch'].indexOf(S.errCode) >= 0){
-      const msg = S.err; if(S.errCode === 'bin' || S.errCode === 'mismatch') store.del(P + 'bin');
-      started = false; showSetup(msg); return;
-    }
-    showFailure();
+  async function firstLoad(){
+    clearTimeout(failTimer); clearTimeout(retryTimer);
+    showBlock('Cargando datos del equipo…');
+    started = true; await sync('start');
+    clearTimeout(retryTimer);
+    if(S.base){ hideOv(); attachEvents(); } else showFailure();
   }
-  function showSetup(errMsg, created){
+  function showSetup(errMsg){
     buildUI();
-    const key = getKey(), bin = getBin(), name = user();
-    showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + ' · Hipotecario Itaú</div><h2>Conectar con el equipo</h2>' +
-      '<p>Esta herramienta guarda la información en la nube para que <b>todo el equipo vea los mismos datos</b>. Se pide <b>una sola vez</b> en este dispositivo.</p>' +
-      '<label for="cs-name">Tu nombre</label><input type="text" id="cs-name" autocomplete="name" placeholder="Ej.: Karol Riascos" value="' + esc(name) + '">' +
-      '<label for="cs-key">Master Key</label><div class="cs-row"><input type="password" id="cs-key" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(key) + '"><button class="cs-btn cs-sec cs-mini" id="cs-eye" type="button">Ver</button></div>' +
-      '<label for="cs-bin">BIN ID</label><input type="text" id="cs-bin" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(bin) + '">' +
+    showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + ' · Hipotecario Itaú</div><h2>Bienvenido/a</h2>' +
+      '<p>Esta herramienta es compartida: <b>todo el equipo ve los mismos datos</b> y cada cambio se guarda solo. Escribe tu nombre (se pide una sola vez en este dispositivo) para registrar quién hace cada cambio.</p>' +
+      '<label for="cs-name">Tu nombre</label><input type="text" id="cs-name" autocomplete="name" placeholder="Ej.: Karol Riascos" value="' + esc(user()) + '">' +
       (errMsg ? '<div class="cs-err" id="cs-err">' + esc(errMsg) + '</div>' : '<div id="cs-err"></div>') +
-      '<button class="cs-btn" id="cs-go">Guardar y continuar</button>' +
-      '<details><summary>Administrador: crear un espacio nuevo</summary><p style="margin-top:10px">Solo si eres quien configura la herramienta por primera vez. Se crea un BIN nuevo con los datos actuales y se te mostrará el BIN ID para compartirlo. <b>Si tu equipo ya la usa, no crees uno nuevo: pide el BIN ID.</b></p>' +
-      '<button class="cs-btn cs-sec" id="cs-create" type="button">Crear espacio nuevo</button></details></div>', true);
-    $o('#cs-eye').onclick = () => { const i = $o('#cs-key'); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; $o('#cs-eye').textContent = show ? 'Ocultar' : 'Ver'; };
-    $o('#cs-go').onclick = () => submitSetup(false);
-    $o('#cs-create').onclick = () => submitSetup(true);
-    ov.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if(e.key === 'Enter') submitSetup(false); }));
+      '<button class="cs-btn" id="cs-go">Continuar</button></div>', true);
+    $o('#cs-go').onclick = submitSetup;
+    $o('#cs-name').addEventListener('keydown', e => { if(e.key === 'Enter') submitSetup(); });
   }
   function setupErr(msg){ const e = $o('#cs-err'); if(e){ e.className = msg ? 'cs-err' : ''; e.textContent = msg || ''; } }
-  async function submitSetup(create){
-    const name = $o('#cs-name').value.trim(), key = $o('#cs-key').value.trim(), bin = $o('#cs-bin').value.trim();
+  function submitSetup(){
+    const name = $o('#cs-name').value.trim();
     if(!name){ setupErr('Escribe tu nombre: queda registrado junto a los cambios que hagas.'); return; }
-    if(!key){ setupErr('Ingresa la Master Key.'); return; }
-    if(!create && !bin){ setupErr('Ingresa el BIN ID que te compartió tu equipo.'); return; }
-    store.set(LS_NAME, name); store.set(LS_KEY, key);
-    $o('#cs-go').disabled = true; $o('#cs-create').disabled = true;
-    if(create){
-      try{
-        const seed = C.getData();
-        const env = await pack(seed, 1);
-        const id = await jbCreate(key, env);
-        store.set(P + 'bin', id);
-        S.base = clone(seed); S.rev = 1; S.savedAt = env.savedAt; S.savedBy = env.savedBy; S.lastSync = Date.now(); S.dirty = false; saveMeta();
-        showCreated(id);
-      }catch(e){
-        $o('#cs-go').disabled = false; $o('#cs-create').disabled = false;
-        setupErr(e.message || String(e));
-      }
-      return;
-    }
-    store.set(P + 'bin', bin);
-    S.base = null; S.rev = 0; S.dirty = false; store.del(P + 'sync');
-    showBlock('Conectando con el equipo…');
-    started = true; await sync('setup'); afterFirstSync();
-    if(S.base) attachEvents();
-  }
-  function showCreated(id){
-    showOv('<div class="cs-card"><div class="cs-brand">' + esc(C.title) + '</div><h2>✅ Espacio creado</h2>' +
-      '<p>Este es el <b>BIN ID</b> de esta herramienta. Compártelo con tu equipo junto con la Master Key:</p><div class="cs-big" id="cs-newbin">' + esc(id) + '</div>' +
-      '<div class="cs-note">Guárdalo ahora: es lo que cada persona debe ingresar la primera vez.</div>' +
-      '<button class="cs-btn cs-sec" id="cs-copy" type="button">Copiar BIN ID</button><button class="cs-btn" id="cs-cont">Continuar</button></div>', true);
-    $o('#cs-copy').onclick = () => { try{ navigator.clipboard.writeText(id); $o('#cs-copy').textContent = 'Copiado ✓'; }catch(e){ const r = document.createRange(); r.selectNodeContents($o('#cs-newbin')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } };
-    $o('#cs-cont').onclick = () => { hideOv(); started = true; attachEvents(); setStatus('ok'); try{ C.applyData(C.getData()); }catch(e){} };
+    store.set(LS_NAME, name);
+    if(S.base){ hideOv(); started = true; attachEvents(); sync('setup'); }
+    else firstLoad();
   }
 
   /* Panel de sincronización (botón del encabezado) */
@@ -634,17 +610,13 @@ const CloudSync = (function(){
     const cls = i.state === 'ok' ? 'cs-ok' : (i.state === 'error' ? 'cs-err' : 'cs-note');
     pn.innerHTML = '<div class="cs-card"><div class="cs-brand">' + esc(C.title) + '</div><h2>Sincronización</h2>' +
       '<div class="' + cls + '">' + esc(i.text) + (i.dirty && i.state !== 'saving' ? ' · hay cambios pendientes de envío' : '') + '</div>' +
-      '<div class="cs-kv"><b>Última vez</b><span>' + esc(i.last || '—') + '</span><b>Tu nombre</b><span><input type="text" id="cs-pname" value="' + esc(i.user) + '"></span><b>BIN ID</b><span style="word-break:break-all;font-family:Consolas,Menlo,monospace">' + esc(i.bin) + '</span></div>' +
+      '<div class="cs-kv"><b>Última vez</b><span>' + esc(i.last || '—') + '</span><b>Tu nombre</b><span><input type="text" id="cs-pname" value="' + esc(i.user) + '"></span></div>' +
       '<button class="cs-btn cs-acc" id="cs-now">Actualizar ahora</button>' +
-      '<button class="cs-btn cs-sec" id="cs-copybin">Copiar BIN ID</button>' +
-      '<button class="cs-btn cs-sec" id="cs-close">Cerrar</button>' +
-      '<details><summary>Cambiar de espacio o cerrar sesión en este dispositivo</summary><p style="margin-top:10px">Se borrarán de este dispositivo la Master Key, el BIN ID y la copia local. Los datos del equipo no se tocan.</p><button class="cs-btn cs-sec" id="cs-out" type="button">Olvidar configuración</button></details></div>';
+      '<button class="cs-btn cs-sec" id="cs-close">Cerrar</button></div>';
     const q = s => pn.querySelector(s);
     q('#cs-now').onclick = async () => { q('#cs-now').disabled = true; await refresh(); };
-    q('#cs-copybin').onclick = () => { try{ navigator.clipboard.writeText(i.bin); q('#cs-copybin').textContent = 'Copiado ✓'; }catch(e){} };
     q('#cs-close').onclick = closePanel;
     q('#cs-pname').onchange = e => { const v = e.target.value.trim(); if(v) store.set(LS_NAME, v); };
-    q('#cs-out').onclick = () => { store.del(P + 'bin'); store.del(P + 'sync'); started = false; S.base = null; closePanel(); showSetup(''); };
   }
 
   /* ---------- eventos del navegador ---------- */
@@ -654,22 +626,21 @@ const CloudSync = (function(){
     window.addEventListener('online', () => { if(S.dirty || S.state === 'offline') sync('online'); });
     document.addEventListener('visibilitychange', () => {
       if(document.visibilityState === 'hidden'){ if(S.dirty && !S.busy){ clearTimeout(saveTimer); sync('hidden'); } }
-      else if(Date.now() - S.lastSync > 600000 && !S.busy && !modalOpen()) sync('visible');
+      else if(Date.now() - S.lastSync > 60000 && !S.busy && !modalOpen()) sync('visible');
     });
+    // trae los cambios de los demás cada 3 minutos mientras la pestaña está visible
+    setInterval(() => { if(document.visibilityState === 'visible' && !S.busy && !modalOpen() && Date.now() - S.lastSync > 170000) sync('poll'); }, 30000);
     window.addEventListener('beforeunload', e => { if(S.dirty){ e.preventDefault(); e.returnValue = ''; } });
   }
 
   /* ---------- arranque ---------- */
-  /** cfg: {app,prefix,title,binName,getData(),applyData(d),onStatus(info),isBusyUI(),prepend:[]} */
+  /** cfg: {app,prefix,title,getData(),applyData(d),onStatus(info),isBusyUI(),prepend:[]} */
   function init(cfg){
     C = cfg; P = cfg.prefix + '_';
     buildUI(); loadMeta();
-    if(!getKey() || !getBin()){ showSetup(''); return; }
-    started = true;
-    if(!S.base) showBlock('Cargando datos del equipo…');
-    sync('start').then(() => { if(!S.base) afterFirstSync(); else attachEvents(); });
-    if(S.base) attachEvents();
-    setStatus('loading');
+    if(!user()){ showSetup(''); return; }
+    if(!S.base){ firstLoad(); return; }
+    started = true; attachEvents(); setStatus('loading'); sync('start');
   }
 
   return {init, changed, refresh, openPanel, info, user, _test:{merge, deepEqual, S, sync}};
@@ -696,7 +667,7 @@ const TABS = [
   {id:'history', label:'⟲ Historial'},
   {id:'config', label:'⚙ Configuración'}
 ];
-const SHARE_NOTE = 'Los datos se guardan en la nube y los ve todo el equipo (se ingresa una vez la Master Key y el BIN ID). Cada cambio se envía automáticamente; sin conexión, queda en este equipo y se envía al reconectar. Descarga respaldos periódicamente.';
+const SHARE_NOTE = 'Los datos se guardan en la nube y los ve todo el equipo (solo se pide tu nombre la primera vez). Cada cambio se envía automáticamente; sin conexión, queda en este equipo y se envía al reconectar. Descarga respaldos periódicamente.';
 
 /* =========================================================
    2. UTILIDADES (fechas, números, texto)
@@ -1850,7 +1821,7 @@ function renderConfig(){
       <div class="toolbar" style="margin-bottom:10px"><button class="btn btn-navy" onclick="downloadBackup()">⇩ Descargar respaldo</button><button class="btn btn-ghost" onclick="restoreBackup()">⇪ Restaurar respaldo</button></div>
       <div class="toolbar" style="margin-bottom:10px"><button class="btn btn-ghost" onclick="openImportCSV()">⇪ Importar proyectos CSV</button><button class="btn btn-ghost" onclick="exportProjectsCSV()">⇩ Proyectos CSV</button><button class="btn btn-ghost" onclick="exportSettlementCSV(ui.period)">⇩ Liquidación CSV</button><button class="btn btn-ghost" onclick="exportHistoryCSV()">⇩ Historial CSV</button></div>
       <div class="share-note"><span>ⓘ</span><div>${SHARE_NOTE}</div></div>
-      <div class="notice n-info"><span class="ic">💾</span><div>Los datos se sincronizan con el equipo (JSONBin) y se conserva una copia en este navegador (${storageOK ? 'disponible' : '<b>no disponible</b>'}). Último guardado local: <b>${fmtStamp(state.lastSaved)}</b>. <button class="btn btn-sm btn-ghost" onclick="CloudSync.openPanel()">☁ Ver sincronización</button></div></div>
+      <div class="notice n-info"><span class="ic">💾</span><div>Los datos se sincronizan con el equipo y se conserva una copia en este navegador (${storageOK ? 'disponible' : '<b>no disponible</b>'}). Último guardado local: <b>${fmtStamp(state.lastSaved)}</b>. <button class="btn btn-sm btn-ghost" onclick="CloudSync.openPanel()">☁ Ver sincronización</button></div></div>
       <div class="card-title" style="margin-top:16px"><h3>Datos base del Excel</h3></div>
       <p class="muted">Origen: <b>${EXCEL_SOURCE}</b> · ${EXCEL_PROJECTS.length} proyectos (pestaña "Carga proyectos") y pagos de abril a septiembre 2026 (pestaña "Pagos mensuales").</p>
       <div class="toolbar"><button class="btn btn-ghost" onclick="reloadExcelData()">↺ Restaurar datos del Excel</button></div>
@@ -2113,7 +2084,7 @@ load();
 renderAll();
 if(!storageOK) toast('localStorage no está disponible: descarga un respaldo antes de cerrar.', 'warn', 8000);
 CloudSync.init({
-  app: 'control-toctoc-itau', prefix: 'toctoc', title: 'Control de pagos TOCTOC', binName: 'control-toctoc-itau', prepend: ['/log'],
+  app: 'control-toctoc-itau', prefix: 'toctoc', title: 'Control de pagos TOCTOC', prepend: ['/log'],
   getData(){ const d = clone(state); delete d.lastSaved; return d; },
   applyData(d){
     state = normalizeState(Object.assign({}, clone(d), {lastSaved: state.lastSaved}));
