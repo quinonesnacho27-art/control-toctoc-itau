@@ -5,7 +5,7 @@
    La escritura es atómica (LockService) y solo se acepta si nadie guardó antes
    (baseRev = versión actual); si no, devuelve la versión vigente para mezclarla.
    Se conserva además la versión anterior de cada app como respaldo. */
-var APPS = {'calendario-hipotecario': 1, 'control-toctoc-itau': 1, 'selftest': 1};
+var APPS = {'calendario-hipotecario': 1, 'control-toctoc-itau': 1, 'jp-calendar': 1, 'selftest': 1};
 var CHUNK = 7000;
 
 function doGet(e) { return handle_(e && e.parameter ? e.parameter : {}); }
